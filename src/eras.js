@@ -27,8 +27,9 @@ function waitFor(ms, tok){
 
 function stopTask(){
   era.token++;
-  document.getElementById('era-film')?.close();
+  closeEraFilm();
   era.paused = false;
+  $('#park-stage')?.classList.remove('paused');
   clearStageFx();
 }
 
@@ -78,7 +79,8 @@ function stageKit(tok){
     counter(html){
       const el = fxLayer('park-counter', 'park-counter');
       if (!html){ el.classList.remove('show'); return; }
-      el.innerHTML = html; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+      el.innerHTML = html;el.classList.toggle('wide',($('b',el)?.textContent.length||0)>9);
+      el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
     },
     async count(from, to, ms, label, unit = '人'){
       const steps = 30;
@@ -119,14 +121,14 @@ function stageKit(tok){
       setFlags(next);
       S.spot([to]);
     },
-    /* 傳承鏈：依序出現，以細線串起球隊沿革。 */
+    /* 球隊沿革：依序呈現改名、接手與解散等歷程。 */
     async ribbon(chain){
       const el = fxLayer('park-ribbon', 'park-ribbon');
       const markup = chain.flatMap((item, i) => [
         ...(i ? [`<span class="rb-arrow${item && item.gap ? ' dashed' : ''}" aria-hidden="true"></span>`] : []),
         chipHTML(item)
       ]);
-      if (!el.children.length) el.innerHTML = `<span class="rb-title">傳承</span>`;
+      if (!el.children.length) el.innerHTML = `<span class="rb-title">沿革</span>`;
       const existing = [...el.children].slice(1);
       let keep = 0;
       while (keep < existing.length && existing[keep].dataset.ribbonKey === markup[keep]) keep++;
@@ -150,15 +152,30 @@ function stageKit(tok){
 /* ---------- 九個展櫃的劇本 ---------- */
 const ALL_CPBL = y => teamsIn(y, 'cpbl').map(lastStage);
 const ERA_FILMS={cpbl21:{id:'L8C5dGnhiTo',title:'彭政閔：請球迷再給我們一次機會！',year:2010,url:'https://www.youtube.com/watch?v=L8C5dGnhiTo',src:'{{VIDEO:cpbl21}}',poster:'{{VIDEO_POSTER:cpbl21}}'}};
+let eraFilmSession=null;
 function clearEraFilmPlayer(){
   const player=$('#era-film-player video');
   if(player){player.pause();player.removeAttribute('src');player.load();}
   $('#era-film-player').replaceChildren();
 }
-function openEraFilm(key){
-  const video=ERA_FILMS[key],dialog=document.getElementById('era-film');
-  if(!video||!dialog||dialog.open)return;
+function closeEraFilm(){
+  const session=eraFilmSession;if(!session)return;
+  eraFilmSession=null;
+  clearEraFilmPlayer();$('#era-film').hidden=true;
+  if(session.token===era.token){
+    era.paused=session.paused;
+    $('#era-toggle').textContent=session.paused?'▶ 繼續':'❚❚ 暫停';
+    $('#park-stage').classList.toggle('paused',session.paused);
+  }
+  session.resolve();
+}
+function openEraFilm(key,{automatic=false}={}){
+  const video=ERA_FILMS[key],screen=document.getElementById('era-film');
+  if(!video||!screen)return Promise.resolve();
+  if(eraFilmSession)return eraFilmSession.promise;
   const paused=era.paused,token=era.token;
+  let resolve;const promise=new Promise(done=>{resolve=done;});
+  eraFilmSession={paused,token,promise,resolve};
   era.paused=true;
   $('#era-toggle').textContent='▶ 繼續';$('#park-stage').classList.add('paused');
   $('#era-film-title').textContent=video.title;
@@ -168,16 +185,14 @@ function openEraFilm(key){
   player.setAttribute('aria-label',video.title);player.src=video.src;player.poster=video.poster;
   player.controls=true;player.playsInline=true;player.preload='metadata';
   $('#era-film-player').replaceChildren(player);
-  dialog.onclose=()=>{
-    clearEraFilmPlayer();
-    if(token!==era.token)return;
-    era.paused=paused;
-    $('#era-toggle').textContent=paused?'▶ 繼續':'❚❚ 暫停';
-    $('#park-stage').classList.toggle('paused',paused);
-  };
-  $('#era-film-close').onclick=()=>dialog.close();
-  dialog.showModal();
+  player.addEventListener('ended',closeEraFilm,{once:true});
+  player.addEventListener('play',()=>{if(eraFilmSession?.promise===promise)$('#era-toggle').textContent='❚❚ 暫停影片';});
+  player.addEventListener('pause',()=>{if(eraFilmSession?.promise===promise)$('#era-toggle').textContent='▶ 繼續影片';});
+  $('#era-film-close').textContent=automatic?'略過影片 ›':'回到球場 ✕';
+  $('#era-film-close').onclick=closeEraFilm;
+  screen.hidden=false;
   player.play().catch(()=>{/* 瀏覽器若限制自動播放，可直接按原生播放鍵。 */});
+  return promise;
 }
 const ERAS = [
   {n:1, scenes:[
@@ -397,11 +412,13 @@ const ERAS = [
       await S.ribbon(['eagles', {text:'沒有承接關係'}, 'tsg']);
       S.sub('名字裡有「鷹」，但它是全新的球隊，不是時報鷹復活。'); await S.wait(3000);
     }},
-    {title:'所有人的冠軍', event:'premier12', photo:'taiwan2024', async run(S){
+    {title:'所有人的冠軍', event:'premier12', photo:'taiwan2024',emblem:'ct',async run(S){
       S.year(2024); S.spot(ALL_CPBL(2024));
       S.sub('2024 年 11 月 24 日，臺灣代表隊在東京巨蛋 4 比 0 擊敗日本，拿下世界 12 強冠軍。');
       S.counter('<small>WBSC 世界 12 強</small><b>冠軍</b>'); S.boom(); await S.wait(3000);
-      S.sub('穿上國家隊球衣時，大家支持的是同一支球隊。'); S.boom(); await S.wait(2800); S.counter(null);
+      S.sub('穿上國家隊球衣時，大家支持的是同一支球隊。');
+      S.counter('<img class="ct-crest" src="{{EMBLEM:ct}}" width="190" height="190" alt="臺灣棒球代表隊 CT 標誌">');
+      S.boom(); await S.wait(4200); S.counter(null);
     }},
     {title:'三十六年快轉', async run(S){
       S.year(1990);
@@ -418,6 +435,10 @@ const ERAS = [
       S.year(2026); S.spot(ALL_CPBL(2026));
       S.sub('2026 年，六支球隊、新的故事每天都在發生。這一頁，本館不預測結局。'); await S.wait(3200);
       S.sub('每一面旗子背後，都有好幾個名字、好幾代球迷。看台上的人換了一批又一批，棒子一直傳下去。'); await S.wait(3600);
+      S.sub('謝謝你，願意把一點時間留給臺灣棒球。'); await S.wait(3000);
+      S.sub('不論你是一路相伴的老球迷、剛開始看球的新朋友，還是今天第一次認識棒球，都歡迎你。'); await S.wait(5600);
+      S.sub('每一份關注、每一聲加油，都讓臺灣棒球多一份走下去的力量。'); await S.wait(4400);
+      S.sub('謝謝你，成為這段故事的一部分。比賽還在繼續，看台上，永遠有你的位置。'); await S.wait(4600);
     }}
   ]}
 ];
@@ -452,10 +473,10 @@ function renderEraReading(){
   const box=$('#era-page-content');if(!box||!era.n)return;
   const s=ERAS[era.n-1].scenes[era.scene],tab=eraReader.tab;
   $$('[data-era-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.eraTab===tab)));
-  $('#era-page-title').textContent=era.done?'本局完成':`第 ${era.scene+1} 幕 · ${s.title}`;
+  $('#era-page-title').textContent=era.done?(era.n===9?'故事還在繼續':'本局完成'):`第 ${era.scene+1} 幕 · ${s.title}`;
   if(era.done&&tab==='guide'){
     const next=era.n<9?era.n+1:null;
-    box.innerHTML=`<div class="era-finish" id="era-end"><h4>第${ZH[era.n]}局看完了</h4><button type="button" class="btn btn-gold" data-mp="close">回到展廳</button>${next?`<button type="button" class="btn btn-line" data-goto="era-${next}">前往第${ZH[next]}局 →</button>`:'<button type="button" class="btn btn-line" data-goto="theater">前往時光劇場 →</button>'}<button type="button" class="link-btn" data-era="replay">從頭再看一次</button></div>`;
+    box.innerHTML=`<div class="era-finish" id="era-end"><h4>${era.n===9?'謝謝你，讓故事繼續。':`第${ZH[era.n]}局看完了`}</h4><button type="button" class="btn btn-gold" data-mp="close">回到展廳</button>${next?`<button type="button" class="btn btn-line" data-goto="era-${next}">前往第${ZH[next]}局 →</button>`:'<button type="button" class="btn btn-line" data-goto="theater">前往時光劇場 →</button>'}<button type="button" class="link-btn" data-era="replay">從頭再看一次</button></div>`;
     $('#era-page-nav').hidden=true;return;
   }
   let pages;
@@ -464,6 +485,7 @@ function renderEraReading(){
     if(s.video)pages.push(...fitEraCopy(box,`${ERA_FILMS[s.video].year} · ${ERA_FILMS[s.video].title}\n點上方的影片按鈕，即可開啟內嵌播放器。`).map(text=>({text})));
     if(s.photo){const p=photos[s.photo];pages.push({photo:s.photo});pages.push(...fitEraCopy(box,`${p.title}\n${p.caption}\n攝影：${p.author} · CC BY 2.0`).map(text=>({text,source:p.page})));}
     if(s.event)pages.push({event:s.event});
+    if(s.emblem==='ct')pages.push(...fitEraCopy(box,'CT 標誌圖檔：miang123／Vectors Arena。點此查看圖檔來源。').map(text=>({text,source:'https://vectorsarena.com/photo/2186/chinese-taipei-national-baseball-team-logo-download-free-vector-logo'})));
     if(!pages.length)pages=[{text:'這一幕的重點都在球場動畫中。點旗幟可以查看球隊身世。'}];
   }else{
     const text=tab==='text'?eraReader.lines.join('\n\n'):eraReader.lines.at(-1)||'動畫即將開始。可使用上方控制切換場景或暫停。';
@@ -473,7 +495,9 @@ function renderEraReading(){
   const page=pages[index];
   if(page.photo){const p=photos[page.photo];box.innerHTML=`<img class="era-page-photo" src="${p.src}" alt="${esc(p.title)}" data-photo="${page.photo}" tabindex="0" role="button" aria-label="放大照片：${esc(p.title)}">`;}
   else if(page.event){const e=byEvent[page.event];box.innerHTML=`<div class="era-event-card"><span>本幕歷史球票</span><h4>${esc(e.title)}</h4><button type="button" class="read-ticket" data-event="${page.event}">打開這張球票 →</button></div>`;}
-  else{box.replaceChildren();const p=document.createElement('p');p.className='era-page-copy';p.textContent=page.text;box.append(p);}
+  else{box.replaceChildren();const p=document.createElement('p');p.className='era-page-copy';
+    if(page.source){const a=document.createElement('a');a.href=page.source;a.target='_blank';a.rel='noopener noreferrer';a.textContent=page.text;p.append(a);}else p.textContent=page.text;
+    box.append(p);}
   $('#era-page-nav').hidden=false;$('#era-page-count').textContent=`${index+1} / ${pages.length}`;
   $('[data-era-page="prev"]').disabled=index===0;$('[data-era-page="next"]').disabled=index===pages.length-1;
 }
@@ -488,7 +512,7 @@ function renderEraShell(n){
       <button type="button" data-era="toggle" id="era-toggle">❚❚ 暫停</button>
       <button type="button" data-era="next" aria-label="下一幕">⏭</button>
     </div>
-    ${video?`<button type="button" class="era-video-open" data-era-video="${video}" aria-haspopup="dialog"><span>▶</span> 職棒 21 年 · 2010 影像</button>`:''}
+    ${video?`<button type="button" class="era-video-open" data-era-video="${video}" aria-controls="era-film"><span>▶</span> 職棒 21 年 · 2010 影像</button>`:''}
     <div class="era-reading-tabs" role="group" aria-label="展櫃內容"><button type="button" data-era-tab="guide" aria-pressed="true">導讀</button><button type="button" data-era-tab="text" aria-pressed="false">文字</button><button type="button" data-era-tab="extra" aria-pressed="false">延伸</button></div>
     <section class="era-reading"><h4 id="era-page-title"></h4><div id="era-page-content"></div><div class="era-page-nav" id="era-page-nav"><button type="button" data-era-page="prev" aria-label="上一頁內容">‹ 上一頁</button><span id="era-page-count"></span><button type="button" data-era-page="next" aria-label="下一頁內容">下一頁 ›</button></div></section>`;
   $('#era-scene-select').addEventListener('change',e=>playEra(era.n,+e.target.value));
@@ -517,7 +541,12 @@ async function playEra(n, from = 0){
     renderSceneInfo();
     const S = stageKit(tok);
     S.reset();
-    try { await scenes[i].run(S); await S.wait(1200); }
+    try {
+      await scenes[i].run(S);
+      if(tok!==era.token)return;
+      if(scenes[i].video)await openEraFilm(scenes[i].video,{automatic:true});
+      else await S.wait(1200);
+    }
     catch (e){ if (e === CANCEL) return; throw e; }
     if (tok !== era.token) return;
   }
@@ -541,7 +570,11 @@ function eraControl(e){
   const b = e.target.closest('[data-era]');
   if (b){
     const act = b.dataset.era, last = ERAS[era.n - 1].scenes.length - 1;
-    if (act === 'toggle'){ era.paused = !era.paused; b.textContent = era.paused ? '▶ 繼續' : '❚❚ 暫停'; $('#park-stage').classList.toggle('paused', era.paused); }
+    if (act === 'toggle'){
+      const film=$('#era-film-player video');
+      if(eraFilmSession&&film){if(film.paused)film.play().catch(()=>{});else film.pause();return;}
+      era.paused = !era.paused; b.textContent = era.paused ? '▶ 繼續' : '❚❚ 暫停'; $('#park-stage').classList.toggle('paused', era.paused);
+    }
     else if (act === 'prev') playEra(era.n, Math.max(0, era.scene - 1));
     else if (act === 'next'){ if (era.scene < last) playEra(era.n, era.scene + 1); }
     else if (act === 'replay') playEra(era.n, 0);

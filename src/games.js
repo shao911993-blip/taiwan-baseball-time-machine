@@ -19,13 +19,21 @@ const PITCHES = {
   fb:{name:'四縫線直球', en:'FOUR-SEAM', color:'#e4bd79', kmh:[140,152], bx:0, by:14, err:9, desc:'用速度壓縮打者的反應時間，球路最接近直線。'},
   sl:{name:'滑球', en:'SLIDER', color:'#86b9d3', kmh:[125,136], bx:-170, by:65, err:13, desc:'向投手手套側橫移，伴隨下沉，讓打者追著偏離的球路揮棒。'},
   cb:{name:'曲球', en:'CURVEBALL', color:'#c4a3dd', kmh:[108,120], bx:-28, by:230, err:15, desc:'弧線較大、下墜明顯，用高低差打亂打者的判斷。'},
-  ch:{name:'變速球', en:'CHANGEUP', color:'#8dc5af', kmh:[120,130], bx:95, by:110, err:11, desc:'以近似直球的出手搭配較慢球速，往投手臂側偏移並下沉。'}
+  ch:{name:'變速球', en:'CHANGEUP', color:'#8dc5af', kmh:[120,130], bx:95, by:110, err:11, desc:'以近似直球的出手搭配較慢球速，往投手臂側偏移並下沉。'},
+  si:{name:'伸卡球',en:'SINKER',color:'#d9a779',kmh:[135,147],bx:120,by:80,err:11,desc:'速球系的臂側尾勁，帶有下沉；觀察它與四縫線直球的差異。'},
+  ct:{name:'卡特球',en:'CUTTER',color:'#eaa4a1',kmh:[134,146],bx:-85,by:25,err:10,late:true,desc:'球速接近直球，後段往手套側小幅切動，橫移比滑球短。'},
+  fs:{name:'指叉球',en:'SPLITTER',color:'#a8b9e6',kmh:[125,138],bx:12,by:205,err:15,late:true,desc:'此處採快速指叉球的示意：前段像直球，靠近本壘時明顯下墜。'},
+  sv:{name:'滑曲球',en:'SLURVE',color:'#d4a6cb',kmh:[117,129],bx:-140,by:155,err:14,desc:'介於滑球與曲球之間，往手套側斜向下墜，兼具橫移與高低差。'}
 };
 const PITCH_GUIDE = {
   fb:{grip:'食指與中指分開，橫跨馬蹄形縫線；拇指托在球的下方。', focus:'兩指橫跨縫線', spin:'以後旋為主', read:'看球速與出手節奏。高位置的直球容易讓揮棒跟不上。', source:'https://www.mlb.com/glossary/pitch-types/four-seam-fastball'},
   sl:{grip:'此處示範常見雙指握法：食指與中指靠攏、偏向球的一側，中指沿著縫線，拇指在下方支撐。', focus:'雙指靠攏、偏側握球', spin:'側向與陀螺旋轉的比例依投手而異', read:'留意後段的橫向偏移；不要只追著出手時的方向揮棒。', source:'https://drivelinebaseball.com/blogs/blog/how-to-throw-a-slider'},
   cb:{grip:'此處示範傳統雙指曲球：中指沿縫線，食指靠在旁邊輔助，拇指在球的下方支撐。', focus:'中指沿縫線施力', spin:'以前旋產生明顯下墜', read:'球速較慢、弧線較高。多等一下，觀察它掉進好球帶的位置。', source:'https://help.drivelinebaseball.com/portal/en/kb/articles/pitch-grips-curveballs-27-1-2022'},
-  ch:{grip:'此處示範圈指變速球：拇指和食指圍成圈，中指與無名指放在球上，小指輔助支撐，握球較深。', focus:'拇指、食指成圈', spin:'旋轉與尾勁依握法而異', read:'不要被像直球的出手騙到。利用球速落差，練習把揮棒時間延後。', source:'https://drivelinebaseball.com/blogs/blog/how-to-throw-a-changeup'}
+  ch:{grip:'此處示範圈指變速球：拇指和食指圍成圈，中指與無名指放在球上，小指輔助支撐，握球較深。', focus:'拇指、食指成圈', spin:'旋轉與尾勁依握法而異', read:'不要被像直球的出手騙到。利用球速落差，練習把揮棒時間延後。', source:'https://drivelinebaseball.com/blogs/blog/how-to-throw-a-changeup'},
+  si:{grip:'示範常見二縫線握法：食指與中指順著相鄰的兩條縫線，拇指在下方支撐。球路也受出手方式影響，並非只有一種握法。',focus:'兩指沿著相鄰縫線',spin:'帶臂側位移的速球旋轉；下沉與橫移幅度依投手而異',read:'與四縫線直球相比，多留意往投手臂側跑、並向下沉的尾勁。',source:'https://drivelinebaseball.com/blogs/blog/how-to-throw-a-sinker-or-two-seam-fastball'},
+  ct:{grip:'以四縫線握法為基礎，食指與中指靠攏，握球略偏向小指側；拇指在下方，無名指輕靠球側。',focus:'兩指靠攏、略偏一側',spin:'以後旋搭配偏轉的旋轉軸，產生短距離的手套側位移',read:'它比滑球快、切動較短。留意接近本壘時才出現的小幅橫移。',source:'https://drivelinebaseball.com/blogs/blog/how-to-throw-a-cutter'},
+  fs:{grip:'示範快速指叉球：食指與中指張開，讓球置於兩指之間，拇指在下方托住。各投手的指距與握球深度不同。',focus:'食指、中指分開夾住球',spin:'旋轉通常比速球少，主要特徵是下墜；也可能帶有側向位移',read:'先看它是否沿直球軌道進壘，再觀察後段的下墜，別急著追低球。',source:'https://help.drivelinebaseball.com/portal/en/kb/articles/pitch-grips-splitters'},
+  sv:{grip:'滑曲球沒有單一標準握法。圖中示範曲球／滑球系的一種握法：中指沿縫線，食指靠旁輔助，拇指托在另一側下方。',focus:'滑球與曲球之間的一種握法',spin:'旋轉軸介於滑球與曲球之間，形成斜向下墜',read:'與橫移較強的滑球、縱向落差較大的曲球比較，觀察介於兩者之間的斜向球路。',source:'https://www.mlb.com/glossary/pitch-types/slurve'}
 };
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp01 = v => Math.max(0, Math.min(1, v));
@@ -59,6 +67,23 @@ function gameKeys(fn){
   gameRun.cleanup.push(() => document.removeEventListener('keydown', h));
 }
 
+function pitchPickerHTML(batting=false){
+  const entries=Object.entries(PITCHES),pages=[];
+  for(let page=0;page<Math.ceil(entries.length/4);page++){
+    const buttons=entries.slice(page*4,page*4+4).map(([id,p],i)=>`<button type="button" class="chip" ${batting?'data-bat-type':'data-pt'}="${id}" aria-pressed="${!batting&&id==='fb'}">${batting?'':`<b>${page*4+i+1}</b> `}${p.name}<small>${p.en}</small></button>`).join('');
+    pages.push(`<div class="pitch-types" data-pitch-set="${page}" role="group" aria-label="${batting?'練習':'投球'}球種第 ${page+1} 頁"${page?' hidden':''}>${batting?'<button type="button" class="chip" data-bat-type="mix" aria-pressed="true">隨機配球<small>MIX · 全部球種</small></button>':''}${buttons}</div>`);
+  }
+  return `<div class="pitch-picker" data-pitch-page="0"><div class="pitch-picker-head"><p class="lab-eyebrow">${batting?'練習球種':'選擇球種'}</p><div class="pitch-picker-pages"><button type="button" data-pitch-step="-1" aria-label="上一頁球種" disabled>‹</button><span class="pitch-picker-count">1 / ${pages.length}</span><button type="button" data-pitch-step="1" aria-label="下一頁球種">›</button></div></div>${pages.join('')}</div>`;
+}
+function showPitchPage(picker,page){
+  const sets=$$('[data-pitch-set]',picker);page=Math.max(0,Math.min(page,sets.length-1));
+  picker.dataset.pitchPage=page;
+  sets.forEach((set,i)=>set.hidden=i!==page);
+  $('.pitch-picker-count',picker).textContent=`${page+1} / ${sets.length}`;
+  $('[data-pitch-step="-1"]',picker).disabled=page===0;
+  $('[data-pitch-step="1"]',picker).disabled=page===sets.length-1;
+}
+
 function gameUI(host, {aria, learn}){
   host.innerHTML = `<div class="game">
     <div class="game-workspace"><div class="game-field">
@@ -71,6 +96,10 @@ function gameUI(host, {aria, learn}){
   canvas.width = GW * dpr; canvas.height = GH * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   let flashTimer;
+  $('.game',host).addEventListener('click',e=>{
+    const step=e.target.closest('[data-pitch-step]');if(!step)return;
+    const picker=step.closest('.pitch-picker');showPitchPage(picker,Number(picker.dataset.pitchPage)+Number(step.dataset.pitchStep));
+  });
   gameRun.cleanup.push(() => clearTimeout(flashTimer));
   const stage=canvas.parentElement;
   const fitCanvas=()=>{
@@ -166,7 +195,7 @@ function pitchRouteSVG(type){
   const points = Array.from({length:41},(_,i)=>{const b=pitchPos(pt,i/40);return `${(b.x-290)*1.15},${18+(b.y-RELEASE.y)*.65}`;}).join(' ');
   return `<svg viewBox="0 0 270 160" role="img" aria-label="捕手視角下的${PITCHES[type].name}球路"><path d="M125 23 126 138" stroke="#a6b6ac" stroke-dasharray="3 5"/><rect x="72" y="89" width="111" height="69" fill="none" stroke="#8f9e93"/><polyline points="${points}" fill="none" stroke="${PITCHES[type].color}" stroke-width="3"/><circle cx="126.5" cy="137.7" r="5" fill="#faf7ed"/><text x="12" y="17" fill="#b8c7bd" font-size="10">出手</text><text x="204" y="148" fill="#b8c7bd" font-size="10">本壘</text></svg>`;
 }
-const GRIP_ART = {fb:'{{GRIP:fb}}',sl:'{{GRIP:sl}}',cb:'{{GRIP:cb}}',ch:'{{GRIP:ch}}'};
+const GRIP_ART = {fb:'{{GRIP:fb}}',sl:'{{GRIP:sl}}',cb:'{{GRIP:cb}}',ch:'{{GRIP:ch}}',si:'{{GRIP:si}}',ct:'{{GRIP:ct}}',fs:'{{GRIP:fs}}',sv:'{{GRIP:sv}}'};
 const GRIP_REFERENCE = {fb:'Four-seam_fastball_1.JPG',sl:'Slider_1.JPG',cb:'Curve_1.JPG',ch:'Circle_change_1_(cropped).JPG'};
 function installPitchGuide(ui, getType, canOpen = () => true){
   const card = document.createElement('div'); card.className='pitch-guide';
@@ -179,12 +208,12 @@ function installPitchGuide(ui, getType, canOpen = () => true){
     const type=browsing,p=PITCHES[type],g=PITCH_GUIDE[type];
     $$('[data-book-pitch]',book).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.bookPitch===type)));
     bookReader?.destroy();
-    $('.pitch-book-content',book).innerHTML=`<figure class="pitch-book-art"><img src="${GRIP_ART[type]}" width="1122" height="1402" alt="${p.name}右手握球姿勢重繪插畫"><figcaption>右手握法 · 參考實拍重繪</figcaption></figure><div class="pitch-book-copy"><p class="lab-eyebrow">${p.en}</p><h2 id="pitch-book-title">${p.name}</h2><div class="game-reader"></div></div>`;
+    $('.pitch-book-content',book).innerHTML=`<figure class="pitch-book-art"><img src="${GRIP_ART[type]}" width="1122" height="1402" alt="${p.name}右手握球姿勢示意插畫"><figcaption>右手握法 · ${GRIP_REFERENCE[type]?'參考實拍重繪':'其中一種握法示意'}</figcaption></figure><div class="pitch-book-copy"><p class="lab-eyebrow">${p.en}</p><h2 id="pitch-book-title">${p.name}</h2><div class="game-reader"></div></div>`;
     bookReader=gameReader($('.game-reader',book),[
       {id:'grip',label:'握法',read:()=>[{text:`${g.focus}\n\n${g.grip}\n\n圖示為其中一種握法，實際球路因投手而異。`}]},
       {id:'route',label:'球路',read:()=>[{text:`${p.desc}\n\n旋轉特性：${g.spin}`},{html:`${pitchRouteSVG(type)}<small>右投手・捕手視角，變化幅度放大示意</small>`}]},
       {id:'read',label:'觀察',read:()=>[{text:g.read}]},
-      {id:'source',label:'來源',read:()=>[{html:`<p><a href="${g.source}" target="_blank" rel="noopener noreferrer">閱讀更多球種知識 ↗</a></p><p class="grip-credit">插畫以 imagegen 參考 <a href="https://commons.wikimedia.org/wiki/File:${GRIP_REFERENCE[type]}" target="_blank" rel="noopener noreferrer">Toto-artist 照片</a>重繪 · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 3.0</a></p>`}]}
+      {id:'source',label:'來源',read:()=>[{html:`<p><a href="${g.source}" target="_blank" rel="noopener noreferrer">閱讀更多球種知識 ↗</a></p><p class="grip-credit">${GRIP_REFERENCE[type]?`插畫以 imagegen 參考 <a href="https://commons.wikimedia.org/wiki/File:${GRIP_REFERENCE[type]}" target="_blank" rel="noopener noreferrer">Toto-artist 照片</a>重繪 · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 3.0</a>`:'握法為 imagegen 示意插畫；球種說明來源見上方連結。滑曲球的握法與命名會因投手而異。'}</p>`}]}
     ]);
   };
   $('.pitch-guide-open',card).addEventListener('click',()=>{if(!canOpen())return;browsing=getType();renderBook();book.showModal();});
@@ -344,10 +373,10 @@ const PITCH_VIEW={zone:{x:backZoneLeft.x,y:backZoneLeft.y,w:backZoneRight.x-back
 function pitchingTarget(pt,zone=PITCH_VIEW.zone){return {x:zone.x+(pt.tx-ZONE.x)/ZONE.w*zone.w,y:zone.y+(pt.ty-ZONE.y)/ZONE.h*zone.h};}
 function pitchingPitchPos(pt,p){
   const t=clamp01(p),f=t+.2*t*(1-t),end=pitchingTarget(pt);
-  // Readable screen-space illustration: a continuous bow, weighted toward
-  // later flight. Avoid perspective compression turning exaggerated break
-  // into a hook/loop; all routes still finish at the exact scoring target.
-  const bend=4*t*(1-t)*(.7+.6*t);
+  // Use one convex arc in travel progress. Multiplying a hump by t² made
+  // an S-curve: the splitter climbed again before dropping. Cubic sag keeps
+  // its curvature downward throughout, with a later peak than quadratic sag.
+  const bend=PITCHES[pt.type]?.late?Math.sqrt(27)/2*(f-f*f*f):4*f*(1-f);
   return {x:PITCH_VIEW.release.x+(end.x-PITCH_VIEW.release.x)*f-pt.bx*.08*bend,
     y:PITCH_VIEW.release.y+(end.y-PITCH_VIEW.release.y)*f-pt.by*.12*bend,r:6.2*8/(8+18.44*t)};
 }
@@ -471,7 +500,8 @@ function newPitch(type, target){
   return {type, kmh, tx:target.x, ty:target.y, bx:P.bx, by:P.by, dur:18.44 / (kmh / 3.6) * 2000};
 }
 function pitchPos(pt, p){
-  const t=clamp01(p), f=.45*t/(1-.55*t), bend=f*f-f;
+  const t=clamp01(p), f=.45*t/(1-.55*t);
+  const bend=PITCHES[pt.type]?.late?Math.sqrt(27)/8*(f*f*f-f):f*f-f;
   // 曲率在整段飛行都可見；最後仍精準抵達判定使用的落點。
   return {x:RELEASE.x+(pt.tx-RELEASE.x)*f+pt.bx*bend, y:RELEASE.y+(pt.ty-RELEASE.y)*f+pt.by*bend, r:1.5+(BALL_R-1.5)*f};
 }
@@ -505,7 +535,7 @@ function randomTarget(pIn, edgeShare = 0){
   return side === 0 ? {x:ZONE.x - d, y:rnd(ZONE.y, ZONE.y + ZONE.h)} : side === 1 ? {x:ZONE.x + ZONE.w + d, y:rnd(ZONE.y, ZONE.y + ZONE.h)}
     : side === 2 ? {x:rnd(ZONE.x, ZONE.x + ZONE.w), y:ZONE.y - d} : {x:rnd(ZONE.x, ZONE.x + ZONE.w), y:ZONE.y + ZONE.h + d};
 }
-const pickType = () => { const r = Math.random(); return r < .45 ? 'fb' : r < .65 ? 'sl' : r < .8 ? 'cb' : 'ch'; };
+const pickType = () => { const r=Math.random();let sum=0;for(const [type,weight] of [['fb',.32],['sl',.14],['cb',.10],['ch',.10],['si',.12],['ct',.10],['fs',.08],['sv',.04]]){sum+=weight;if(r<sum)return type;}return 'sv'; };
 const dots = (n, max, cls) => Array.from({length:max}, (_, i) => `<i class="${i < n ? 'on ' + cls : ''}"></i>`).join('');
 const countHUD = s => `<span class="cnt"><b>B</b>${dots(s.b, 3, 'b')}</span><span class="cnt"><b>S</b>${dots(s.s, 2, 's')}</span><span class="cnt"><b>O</b>${dots(s.o, 2, 'o')}</span>`;
 
@@ -560,12 +590,12 @@ function battingGame(host){
   const ui = gameUI(host, {aria:'打擊練習：從捕手後方看投手投球，看準時機揮棒',
     learn:'<b>怎麼玩</b>：按「投球」，等球快到本壘時按「揮棒」（或空白鍵、點畫面）。好球帶外的球可以不揮，四個壞球就保送；兩好球後打成界外不會三振。打到三出局結束。<br><b>小知識</b>：時速 150 公里的直球，從投手手中到本壘不到 0.45 秒；這裡放慢了約兩倍。'});
   const S = {phase:'idle', type:'mix', b:0, s:0, o:0, hits:0, hr:0, bb:0, k:0, p:null, t0:0, swingT:0, swung:false, pendingSwing:false, fly:null, mitt:null, until:0};
-  ui.controls.innerHTML=`<div class="pitch-picker"><p class="lab-eyebrow">01 / 選擇練習球種</p><div class="pitch-types" role="group" aria-label="打擊練習球種"><button type="button" class="chip" data-bat-type="mix" aria-pressed="true">隨機配球 <small>MIX</small></button>${Object.entries(PITCHES).map(([id,p])=>`<button type="button" class="chip" data-bat-type="${id}" aria-pressed="false">${p.name}<small>${p.en}</small></button>`).join('')}</div></div>`;
+  ui.controls.innerHTML=pitchPickerHTML(true);
   const btn = document.createElement('button');
   btn.type = 'button'; btn.className = 'btn btn-gold big-action';
   ui.controls.append(btn);
   const updateGuide=installPitchGuide(ui,()=>S.type==='mix' ? S.p?.type||'fb' : S.type,()=>!['windup','pitch'].includes(S.phase));
-  ui.controls.addEventListener('click',e=>{const b=e.target.closest('[data-bat-type]');if(!b)return;S.type=b.dataset.batType;$$('[data-bat-type]',ui.controls).forEach(el=>el.setAttribute('aria-pressed',String(el===b)));updateGuide();});
+  ui.controls.addEventListener('click',e=>{const b=e.target.closest('[data-bat-type]');if(!b)return;S.type=b.dataset.batType;$$('[data-bat-type]',ui.controls).forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.batType===S.type)));updateGuide();});
   const hud = () => {
     ui.hud.innerHTML = countHUD(S) + `<span class="stat">安打 <b>${S.hits}</b></span><span class="stat">全壘打 <b>${S.hr}</b></span><span class="stat">保送 <b>${S.bb}</b></span>`;
     btn.textContent = S.phase === 'over' ? '再打一局 ↗' : S.phase === 'pitch' ? (S.swung?'已揮棒':'揮棒！ SPACE') : S.phase === 'windup' ? '投手準備中…' : S.phase === 'result' ? '下一球準備中…' : '開始投球 →';
@@ -644,9 +674,9 @@ function battingGame(host){
 /* ===================== 2. 投球挑戰 ===================== */
 function pitchingGame(host){
   const ui = gameUI(host, {aria:'投球挑戰：從投手後方看向本壘，在放大瞄準區設定進壘位置',
-    learn:'<b>怎麼玩</b>：先選球種，點畫面右上的放大瞄準區設定進壘位置，再按「投出去」。鍵盤：1–4 選球種、方向鍵瞄準、空白鍵投球。取得 3 個出局前，避免被打出 4 支安打。<br><b>球路觀察</b>：投手後方視角、右投手；球從近處投向遠處的捕手。動畫放慢約兩倍，變化幅度放大以便觀察。'});
+    learn:'<b>怎麼玩</b>：先選球種，點畫面右上的放大瞄準區設定進壘位置，再按「投出去」。鍵盤：1–8 選球種、方向鍵瞄準、空白鍵投球。取得 3 個出局前，避免被打出 4 支安打。<br><b>球路觀察</b>：投手後方視角、右投手；球從近處投向遠處的捕手。動畫放慢約兩倍，變化幅度放大以便觀察。'});
   const S = {phase:'idle', type:'fb', aim:{x:400, y:323}, b:0, s:0, o:0, k:0, h:0, bb:0, last:null, p:null, trace:null, t0:0, plan:null, swingT:0, fly:null, mitt:null, until:0};
-  ui.controls.innerHTML = `<div class="pitch-picker"><p class="lab-eyebrow">01 / 選擇球種</p><div class="pitch-types" role="group" aria-label="選擇球種">${Object.entries(PITCHES).map(([id, p], i) => `<button type="button" class="chip" data-pt="${id}"><b>${i + 1}</b> ${p.name}<small>${p.en}</small></button>`).join('')}</div></div><p class="aim-instruction"><span>02</span> 點右上瞄準區設定進壘位置<br><span>03</span> 確認目標，投出這一球</p><button type="button" class="btn btn-gold big-action" id="g-throw">投出去 →</button>`;
+  ui.controls.innerHTML = pitchPickerHTML()+`<p class="aim-instruction"><span>02</span> 點右上瞄準區設定進壘位置<br><span>03</span> 確認目標，投出這一球</p><button type="button" class="btn btn-gold big-action" id="g-throw">投出去 →</button>`;
   const desc = document.createElement('p'); desc.className = 'pitch-desc'; ui.controls.append(desc);
   const routePreview=document.createElement('div');routePreview.className='pitch-path-preview';ui.controls.append(routePreview);
   const updateGuide=installPitchGuide(ui,()=>S.type,()=>!['windup','pitch'].includes(S.phase));
@@ -708,7 +738,7 @@ function pitchingGame(host){
   gameKeys(e => {
     if (e.target.closest('button') && e.key === ' ') return;
     const step = 8, k = e.key;
-    if (['1','2','3','4'].includes(k)){ S.type = Object.keys(PITCHES)[+k - 1]; hud(); updateGuide(); }
+    if (/^[1-8]$/.test(k)){ S.type = Object.keys(PITCHES)[+k - 1]; showPitchPage($('.pitch-picker',ui.controls),Math.floor((+k-1)/4));hud(); updateGuide(); }
     else if(S.phase!=='idle' && k.startsWith('Arrow'))return;
     else if (k === 'ArrowLeft'){ S.aim.x -= step; e.preventDefault(); }
     else if (k === 'ArrowRight'){ S.aim.x += step; e.preventDefault(); }
