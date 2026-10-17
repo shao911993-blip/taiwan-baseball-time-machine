@@ -105,7 +105,7 @@ strong{color:var(--brick-2)}
   -webkit-mask:radial-gradient(circle 10px at 100% 0,transparent 9.5px,#000 10px) top/100% 51% no-repeat,radial-gradient(circle 10px at 100% 100%,transparent 9.5px,#000 10px) bottom/100% 51% no-repeat;
   mask:radial-gradient(circle 10px at 100% 0,transparent 9.5px,#000 10px) top/100% 51% no-repeat,radial-gradient(circle 10px at 100% 100%,transparent 9.5px,#000 10px) bottom/100% 51% no-repeat}
 .ticket-top{display:flex;justify-content:space-between;font-family:var(--digits);font-size:.72rem;letter-spacing:.2em;color:var(--brick);border-bottom:1.5px dashed rgba(42,33,22,.3);padding-bottom:6px}
-.ticket-title{font-family:var(--serif);font-weight:700;font-size:1.25rem}
+.ticket-title{font-family:var(--serif);font-weight:700;font-size:clamp(.95rem,4.2vw,1.25rem);white-space:nowrap}
 .ticket-match{font-family:var(--serif);font-size:1.05rem}
 .ticket-match em{font-style:normal;font-family:var(--digits);color:var(--brick);margin:0 .35em;font-size:.85rem}
 .ticket-meta{display:flex;gap:14px;font-family:var(--digits);font-size:.85rem;color:#5c4d36}

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>臺灣職棒時光機</title>
+<title>臺灣職棒時光機博物館</title>
 <meta name="description" content="一張球票，走進臺灣職棒的時光。一座可以自由走動的中華職棒博物館：年代動態展櫃、會變的球場模型、球隊族譜，以及打擊、投球、主審、線審、壘審體驗。">
 <meta name="theme-color" content="#10251e">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23f6efe0' stroke='%231f4d3a' stroke-width='4'/%3E%3Cpath d='M17 14c8 10 8 26 0 36M47 14c-8 10-8 26 0 36' fill='none' stroke='%23b2432f' stroke-width='3'/%3E%3C/svg%3E">
@@ -115,7 +115,7 @@ strong{color:var(--brick-2)}
   -webkit-mask:radial-gradient(circle 10px at 100% 0,transparent 9.5px,#000 10px) top/100% 51% no-repeat,radial-gradient(circle 10px at 100% 100%,transparent 9.5px,#000 10px) bottom/100% 51% no-repeat;
   mask:radial-gradient(circle 10px at 100% 0,transparent 9.5px,#000 10px) top/100% 51% no-repeat,radial-gradient(circle 10px at 100% 100%,transparent 9.5px,#000 10px) bottom/100% 51% no-repeat}
 .ticket-top{display:flex;justify-content:space-between;font-family:var(--digits);font-size:.72rem;letter-spacing:.2em;color:var(--brick);border-bottom:1.5px dashed rgba(42,33,22,.3);padding-bottom:6px}
-.ticket-title{font-family:var(--serif);font-weight:700;font-size:1.25rem}
+.ticket-title{font-family:var(--serif);font-weight:700;font-size:clamp(.95rem,4.2vw,1.25rem);white-space:nowrap}
 .ticket-match{font-family:var(--serif);font-size:1.05rem}
 .ticket-match em{font-style:normal;font-family:var(--digits);color:var(--brick);margin:0 .35em;font-size:.85rem}
 .ticket-meta{display:flex;gap:14px;font-family:var(--digits);font-size:.85rem;color:#5c4d36}
@@ -1551,7 +1551,7 @@ html.compact-landscape .mode-game .game-fullscreen:not([hidden]){display:block;p
     <button class="ticket" id="intro-ticket" type="button" aria-label="撕下票根入館">
       <span class="ticket-main">
         <span class="ticket-top"><span>ADMIT ONE</span><span>入館券</span></span>
-        <span class="ticket-title">臺灣職棒博物館</span>
+        <span class="ticket-title">臺灣職棒時光機博物館</span>
         <span class="ticket-match">1990 <em>→</em> 2026</span>
         <span class="ticket-meta"><span>全票</span><span>9 展櫃 · 5 體驗</span></span>
         <svg class="ticket-island" viewBox="0 0 44 72" aria-hidden="true"><path d="M27 3c6 1 9 6 8 12-1 10-3 19-6 28-2 9-6 17-9 25-2-6-6-13-8-21C9 37 9 27 12 19c3-8 8-15 15-16z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
@@ -5022,7 +5022,7 @@ const GAMES = {
 };
 
 /* ============================================================
-   臺灣職棒博物館：可以走動的館內地圖
+   臺灣職棒時光機博物館：可以走動的館內地圖
    地圖以格子（1 格 = 32 px）繪製；靜態部分先畫到離屏 canvas，每格畫面只疊上人物與提示。
    ============================================================ */
 const T = 32, MW = 56, MH = 38, SS = 2;
