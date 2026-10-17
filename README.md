@@ -75,7 +75,7 @@
 - F05／F06：未選不能送出、5 題不重複、回看歷史切到時光劇場並展開事件、返回後不重複計分、重新挑戰清空
 - 九個動畫展櫃可播放、暫停（暫停時字幕不再前進）、跳幕；看完會蓋章；主審判決與計分
 
-尚未做：真實手機觸控實測、螢幕報讀器實測、部署後的公開網址測試。
+尚未做：真實手機觸控實測、螢幕報讀器實測、部署後在公開網址上逐項操作 F01–F06（目前只確認網址回應 HTTP 200、內容完整）。
 
 ## 部署到 GitHub Pages
 
@@ -84,7 +84,8 @@
 3. Settings → Pages → Branch 選 `main`、資料夾 `/ (root)` → Save
 4. 約一分鐘後，網址為 `https://<你的帳號>.github.io/taiwan-baseball-time-machine/`
 
-目前**尚未部署**，沒有公開網址。
+**已部署（2026-10-17）**：https://shao911993-blip.github.io/taiwan-baseball-time-machine/  
+原始碼：https://github.com/shao911993-blip/taiwan-baseball-time-machine
 
 ## 建議繳交截圖
 
