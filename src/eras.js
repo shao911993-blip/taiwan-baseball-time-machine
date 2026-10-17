@@ -27,6 +27,7 @@ function waitFor(ms, tok){
 
 function stopTask(){
   era.token++;
+  document.getElementById('era-film')?.close();
   era.paused = false;
   clearStageFx();
 }
@@ -148,6 +149,36 @@ function stageKit(tok){
 
 /* ---------- 九個展櫃的劇本 ---------- */
 const ALL_CPBL = y => teamsIn(y, 'cpbl').map(lastStage);
+const ERA_FILMS={cpbl21:{id:'L8C5dGnhiTo',title:'彭政閔：請球迷再給我們一次機會！',year:2010,url:'https://www.youtube.com/watch?v=L8C5dGnhiTo',src:'{{VIDEO:cpbl21}}',poster:'{{VIDEO_POSTER:cpbl21}}'}};
+function clearEraFilmPlayer(){
+  const player=$('#era-film-player video');
+  if(player){player.pause();player.removeAttribute('src');player.load();}
+  $('#era-film-player').replaceChildren();
+}
+function openEraFilm(key){
+  const video=ERA_FILMS[key],dialog=document.getElementById('era-film');
+  if(!video||!dialog||dialog.open)return;
+  const paused=era.paused,token=era.token;
+  era.paused=true;
+  $('#era-toggle').textContent='▶ 繼續';$('#park-stage').classList.add('paused');
+  $('#era-film-title').textContent=video.title;
+  $('#era-film-year').textContent=`歷史影像 · ${video.year}`;
+  $('#era-film-source').href=video.url;
+  const player=document.createElement('video');
+  player.setAttribute('aria-label',video.title);player.src=video.src;player.poster=video.poster;
+  player.controls=true;player.playsInline=true;player.preload='metadata';
+  $('#era-film-player').replaceChildren(player);
+  dialog.onclose=()=>{
+    clearEraFilmPlayer();
+    if(token!==era.token)return;
+    era.paused=paused;
+    $('#era-toggle').textContent=paused?'▶ 繼續':'❚❚ 暫停';
+    $('#park-stage').classList.toggle('paused',paused);
+  };
+  $('#era-film-close').onclick=()=>dialog.close();
+  dialog.showModal();
+  player.play().catch(()=>{/* 瀏覽器若限制自動播放，可直接按原生播放鍵。 */});
+}
 const ERAS = [
   {n:1, scenes:[
     {title:'聯盟成立', event:'opening', async run(S){
@@ -296,6 +327,11 @@ const ERAS = [
       S.sub('中信鯨也在這一季後解散。'); await S.ribbon(['whalex', 'whales', {end:'解散'}]);
       await S.lower('whales');
       S.year(2009); S.sub('2009 年，中職又只剩四隊。'); await S.wait(2600);
+    }},
+    {title:'職棒 21 年',video:'cpbl21',async run(S){
+      S.year(2010);
+      S.sub('2010 年，職棒 21 年。透過這段當年的影像，回看球場與球迷之間的連結。');
+      await S.wait(5200);
     }}
   ]},
   {n:7, scenes:[
@@ -425,6 +461,7 @@ function renderEraReading(){
   let pages;
   if(tab==='extra'){
     pages=[];
+    if(s.video)pages.push(...fitEraCopy(box,`${ERA_FILMS[s.video].year} · ${ERA_FILMS[s.video].title}\n點上方的影片按鈕，即可開啟內嵌播放器。`).map(text=>({text})));
     if(s.photo){const p=photos[s.photo];pages.push({photo:s.photo});pages.push(...fitEraCopy(box,`${p.title}\n${p.caption}\n攝影：${p.author} · CC BY 2.0`).map(text=>({text,source:p.page})));}
     if(s.event)pages.push({event:s.event});
     if(!pages.length)pages=[{text:'這一幕的重點都在球場動畫中。點旗幟可以查看球隊身世。'}];
@@ -443,6 +480,7 @@ function renderEraReading(){
 function renderEraShell(n){
   eraReader.observer?.disconnect();Object.assign(eraReader,{tab:'guide',lines:[],positions:{guide:0,text:0,extra:0},subtitle:'',subtitlePage:0});
   const inn = innings[n - 1], scenes = ERAS[n - 1].scenes;
+  const video=scenes.find(s=>s.video)?.video;
   panel().innerHTML = `<div class="mp-head"><span class="mp-inning">第 ${ZH[n]} 局</span><span class="mp-years">${inn.years}</span><h3 id="mp-title" tabindex="-1">${esc(inn.title)}</h3><p class="mp-tag">${esc(inn.tagline)}</p></div>
     <label class="era-scene-picker">選擇場景<select id="era-scene-select">${scenes.map((s,i)=>`<option value="${i}">${i+1}. ${esc(s.title)}</option>`).join('')}</select></label>
     <div class="player-ctl" role="group" aria-label="動畫播放控制">
@@ -450,6 +488,7 @@ function renderEraShell(n){
       <button type="button" data-era="toggle" id="era-toggle">❚❚ 暫停</button>
       <button type="button" data-era="next" aria-label="下一幕">⏭</button>
     </div>
+    ${video?`<button type="button" class="era-video-open" data-era-video="${video}" aria-haspopup="dialog"><span>▶</span> 職棒 21 年 · 2010 影像</button>`:''}
     <div class="era-reading-tabs" role="group" aria-label="展櫃內容"><button type="button" data-era-tab="guide" aria-pressed="true">導讀</button><button type="button" data-era-tab="text" aria-pressed="false">文字</button><button type="button" data-era-tab="extra" aria-pressed="false">延伸</button></div>
     <section class="era-reading"><h4 id="era-page-title"></h4><div id="era-page-content"></div><div class="era-page-nav" id="era-page-nav"><button type="button" data-era-page="prev" aria-label="上一頁內容">‹ 上一頁</button><span id="era-page-count"></span><button type="button" data-era-page="next" aria-label="下一頁內容">下一頁 ›</button></div></section>`;
   $('#era-scene-select').addEventListener('change',e=>playEra(era.n,+e.target.value));
@@ -493,6 +532,7 @@ function finishEra(n){
 }
 
 function eraControl(e){
+  const video=e.target.closest('[data-era-video]');if(video){openEraFilm(video.dataset.eraVideo);return;}
   const tab=e.target.closest('[data-era-tab]');if(tab){eraReader.tab=tab.dataset.eraTab;renderEraReading();return;}
   const page=e.target.closest('[data-era-page]');if(page){eraReader.positions[eraReader.tab]=Math.max(0,(eraReader.positions[eraReader.tab]||0)+(page.dataset.eraPage==='next'?1:-1));renderEraReading();return;}
   const sub=e.target.closest('[data-subpage]');if(sub){eraReader.subtitlePage=Math.max(0,eraReader.subtitlePage+(sub.dataset.subpage==='next'?1:-1));renderEraSubtitle();return;}

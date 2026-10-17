@@ -509,16 +509,49 @@ const pickType = () => { const r = Math.random(); return r < .45 ? 'fb' : r < .6
 const dots = (n, max, cls) => Array.from({length:max}, (_, i) => `<i class="${i < n ? 'on ' + cls : ''}"></i>`).join('');
 const countHUD = s => `<span class="cnt"><b>B</b>${dots(s.b, 3, 'b')}</span><span class="cnt"><b>S</b>${dots(s.s, 2, 's')}</span><span class="cnt"><b>O</b>${dots(s.o, 2, 'o')}</span>`;
 
-/* 飛出去的球（安打、全壘打、界外、飛球） */
-function flight(from, kind){
+/* 擊球結果與動畫共用同一種類，避免滾地出局套用飛球弧線。 */
+const battedOutKind=()=>Math.random()<.5?'groundout':'flyout';
+const battedOutText=kind=>kind==='groundout'?'滾地球，出局！':'高飛球，接殺出局！';
+function flight(from, kind, camera='catcher'){
+  if(kind==='groundout'||kind==='flyout'){
+    return {from,kind,camera,t0:performance.now(),dur:kind==='groundout'?1250:1350,
+      distance:camera==='pitcher'?rnd(12,16):kind==='groundout'?rnd(18,26):rnd(32,48),
+      side:rnd(-1,1)*(camera==='pitcher'?4:kind==='groundout'?9:16)};
+  }
+  if(camera==='pitcher')return {from,to:{x:rnd(100,700),y:rnd(320,440)},kind,camera,t0:performance.now(),dur:900,peak:45};
   const to = kind === 'hr' ? {x:rnd(180, 620), y:40} : kind === 'hit' ? {x:rnd(120, 680), y:rnd(160, 200)}
     : kind === 'foul' ? {x:Math.random() < .5 ? -30 : GW + 30, y:rnd(80, 200)} : {x:rnd(300, 500), y:rnd(170, 200)};
   return {from, to, kind, t0:performance.now(), dur:kind === 'hr' ? 1300 : 1000, peak:kind === 'hr' ? 230 : kind === 'out' ? 260 : 110};
 }
+function battedBallPose(f,progress){
+  const p=clamp01(progress),ground=f.kind==='groundout';
+  const back=f.camera==='pitcher',project=back?pitchingGroundPoint:fieldPoint;
+  const startZ=back?18.44:.2159,travel=ground?2*p-p*p:p;
+  const z=startZ+(back?-1:1)*f.distance*travel,x=f.side*travel;
+  let height;
+  if(!ground)height=.72*(1-p)+4*(back?3.8:5)*p*(1-p)+1.2*p;
+  else if(p<.12)height=.72*(1-p/.12)**2;
+  else{
+    const bounce=(p-.12)/.16,index=Math.floor(bounce);
+    height=index<3?[.24,.12,.055][index]*Math.sin((bounce-index)*Math.PI):0;
+  }
+  const floor=project(x,z),ball=project(x,z,height),start=project(0,startZ,.72);
+  const r=back?1.9*(startZ+8)/(z+8):Math.max(1.8,5.3*(startZ+6)/(z+6));
+  const startR=back?1.9:5.3,anchor=ground?Math.max(0,1-p/.12):(1-p)**2;
+  return {x:ball.x+(f.from.x-start.x)*anchor,
+    y:ball.y-r+(f.from.y-start.y+startR)*anchor,
+    groundX:floor.x,groundY:floor.y,height,r,phase:ground?(p<.12?'drop':p<.60?'bounce':'roll'):'air'};
+}
 function drawFlight(c, f, now){
   const p = clamp01((now - f.t0) / f.dur);
+  if(f.kind==='groundout'||f.kind==='flyout'){
+    const ball=battedBallPose(f,p);
+    ell(c,ball.groundX,ball.groundY,Math.max(2,ball.r*1.35),Math.max(.7,ball.r*.35),`rgba(8,22,14,${.28/(1+ball.height)})`);
+    drawBall(c,ball.x,ball.y,ball.r);
+    return p>=1;
+  }
   const x = f.from.x + (f.to.x - f.from.x) * p, y = f.from.y + (f.to.y - f.from.y) * p - Math.sin(p * Math.PI) * f.peak;
-  drawBall(c, x, y, Math.max(2, 10 - 8 * p));
+  drawBall(c, x, y, f.camera==='pitcher'?1.9+4*p:Math.max(2,10-8*p));
   return p >= 1;
 }
 
@@ -569,10 +602,10 @@ function battingGame(host){
     const result = diff < 0.012 && touchesZone(end.x, end.y) ? 'hr' : diff < 0.028 ? 'hit' : diff < 0.045 ? 'out' : diff < 0.065 ? 'foul' : 'whiff';
     if (result === 'whiff'){ S.whiff = true; return; }
     const pos = pitchPos(S.p, Math.min(p, 1));
-    S.fly = flight(pos, result);
+    S.fly = flight(pos, result==='out'?battedOutKind():result);
     if (result === 'hr'){ S.hits++; S.hr++; endPA(`全壘打！！飛了 ${Math.round(rnd(112, 135))} 公尺`, 'big'); celebrateGame(ui); }
     else if (result === 'hit'){ S.hits++; endPA('安打！', 'good'); }
-    else if (result === 'out') out(Math.random() < .5 ? '高飛球被接殺' : '滾地球出局');
+    else if (result === 'out') out(battedOutText(S.fly.kind));
     else { if (S.s < 2) S.s++; ui.flash('界外球'); }
     S.p = null;
     settle();
@@ -656,9 +689,9 @@ function pitchingGame(host){
     const end = pitchingPitchPos(S.p, 1), plan = S.plan;
     S.trace={...S.p};
     if (plan.contact){
-      S.fly={from:pitchingPitchPos(S.p,.97),to:{x:rnd(100,700),y:rnd(320,460)},kind:plan.kind,t0:performance.now(),dur:900,peak:plan.kind==='out'?130:45};
+      S.fly=flight(pitchingPitchPos(S.p,.97),plan.kind==='out'?battedOutKind():plan.kind,'pitcher');
       if (plan.kind === 'hit'){ S.h++; resetCount(); if (S.h >= 4) over('被打了 4 支安打，教練上來換投了'); else ui.flash('被打出安打', 'bad'); }
-      else if (plan.kind === 'out') out(Math.random() < .5 ? '滾地球，出局！' : '飛球，接殺出局！');
+      else if (plan.kind === 'out') out(battedOutText(S.fly.kind));
       else { if (S.s < 2) S.s++; ui.flash('界外球'); }
     } else {
       S.mitt = end;
@@ -702,7 +735,7 @@ function pitchingGame(host){
       drawPitchingBall(c,S.trace,1,false);
       c.textAlign='left';c.font='10px sans-serif';c.fillStyle=PITCHES[S.trace.type].color;c.fillText(`上一球軌跡 · ${PITCHES[S.trace.type].name}`,22,65);
     }
-    if(S.fly){const p=clamp01((now-S.fly.t0)/S.fly.dur),f=S.fly;drawBall(c,f.from.x+(f.to.x-f.from.x)*p,f.from.y+(f.to.y-f.from.y)*p-Math.sin(p*Math.PI)*f.peak,1.9+4*p);if(p>=1)S.fly=null;}
+    if(S.fly&&drawFlight(c,S.fly,now))S.fly=null;
   });
 }
 

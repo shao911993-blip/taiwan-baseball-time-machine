@@ -29,24 +29,29 @@
 <dialog class="intro" id="intro" aria-labelledby="intro-title">
   <div class="intro-inner">
     <div class="intro-copy">
+      <div class="intro-heading">
       <p class="kicker">TAIWAN BASEBALL MUSEUM · 1990–2026</p>
       <h1 id="intro-title">臺灣職棒時光機</h1>
       <p class="intro-sub">一張球票，走進臺灣職棒的時光。</p>
       <p class="intro-text">這是一座可以自由走動的職棒博物館：九個年代的動態展櫃、會變的球場模型、球隊族譜與冠軍獎盃牆，還有<b>打擊、投球、主審、線審、壘審</b>五種體驗。逛完每一區，集滿 19 個章。</p>
-      <fieldset class="jersey-pick">
-        <legend>先選一件球衣（不分隊，挑你喜歡的顏色）</legend>
-        <div class="swatches" id="swatches"></div>
+      </div>
+      <fieldset class="jersey-pick intro-setup">
+        <legend class="sr-only">入館準備：球衣選擇與操作說明</legend>
+        <nav class="intro-tabs" aria-label="入館準備">
+          <button type="button" data-intro-tab="basic" aria-pressed="true">基本色</button>
+          <button type="button" data-intro-tab="teams" aria-pressed="false">歷代球隊色</button>
+          <button type="button" data-intro-tab="guide" aria-pressed="false">怎麼逛</button>
+        </nav>
+        <div id="swatches" class="intro-options"></div>
+        <div class="intro-options-footer"><p id="intro-choice" aria-live="polite">目前球衣：米白</p><div class="intro-pages"><button type="button" data-intro-step="-1" aria-label="上一頁">‹</button><span id="intro-page-count"></span><button type="button" data-intro-step="1" aria-label="下一頁">›</button></div></div>
       </fieldset>
-      <ul class="controls-list">
-        <li><kbd>↑↓←→</kbd> 或 <kbd>WASD</kbd> 走動，靠近展品按 <kbd>E</kbd> 參觀</li>
-        <li>滑鼠／手機：點地板走過去，點展品會自動走過去打開</li>
-        <li>不想走路？右上角「館內地圖」可以直接前往任何展區</li>
-      </ul>
       <div class="intro-actions">
         <button type="button" class="btn btn-gold" id="enter-btn">撕票入館 →</button>
         <button type="button" class="btn btn-ghost" id="find-team">尋找球隊</button>
       </div>
     </div>
+    <aside class="intro-visual" aria-label="你的入館券">
+    <p class="intro-ticket-label">一張票，走過每一個年代。</p>
     <button class="ticket" id="intro-ticket" type="button" aria-label="撕下票根入館">
       <span class="ticket-main">
         <span class="ticket-top"><span>ADMIT ONE</span><span>入館券</span></span>
@@ -57,6 +62,8 @@
       </span>
       <span class="ticket-stub"><span class="stub-no">No.000001</span><span class="stub-cta">撕票<br>入館</span></span>
     </button>
+    <div class="intro-collection"><div><b>09</b><span>年代展櫃</span></div><div><b>05</b><span>球場體驗</span></div><div><b>19</b><span>觀展印章</span></div></div>
+    </aside>
   </div>
 </dialog>
 
@@ -69,6 +76,13 @@
   <div class="ex-body" id="ex-body"></div>
   <div class="stamp-fx" id="stamp-fx" aria-hidden="true"></div>
   <button class="return-quiz" id="return-quiz" type="button" hidden>↩ 回到挑戰賽</button>
+</dialog>
+
+<!-- ============ 歷史影像 ============ -->
+<dialog class="era-film" id="era-film" aria-labelledby="era-film-title">
+  <header class="era-film-head"><div><p id="era-film-year">歷史影像 · 2010</p><h2 id="era-film-title">彭政閔：請球迷再給我們一次機會！</h2></div><button type="button" id="era-film-close" autofocus aria-label="關閉影片，回到展櫃">關閉 ✕</button></header>
+  <div class="era-film-player" id="era-film-player"></div>
+  <footer class="era-film-foot"><span>職棒 21 年 · 2010 歷史影像</span><a id="era-film-source" href="https://www.youtube.com/watch?v=L8C5dGnhiTo" target="_blank" rel="noopener noreferrer">YouTube 原片 ↗</a></footer>
 </dialog>
 
 <!-- ============ 館內地圖 ============ -->

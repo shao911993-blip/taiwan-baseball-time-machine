@@ -48,6 +48,16 @@ const STAMPS = [
 ];
 const stamps = new Set();
 const JERSEYS = [['#f6efe0','米白'],['#1f4d3a','墨綠'],['#b2432f','磚紅'],['#2f5f95','海藍'],['#c9982a','金黃'],['#2a2a2a','碳黑']];
+// 歷代球隊色：顏色取自球隊資料（與族譜、旗幟同一套代表色），依加入年份排列；同一色系的隊名合併成一格。
+const TEAM_JERSEYS = [
+  ['elephants','兄弟'],['lions','統一獅'],['dragons-old','味全龍'],['tigers','三商虎'],['eagles','時報鷹'],['bears','俊國熊'],
+  ['bulls','興農牛'],['whalex','鯨隊'],['sun-sampo','臺北太陽'],['kong97','臺中金剛'],['warrior97','嘉南勇士'],['thunder97','高屏雷公'],
+  ['first','第一金剛'],['naluwan','那魯灣／誠泰太陽'],['lanew','La New熊'],['cobras','誠泰COBRAS'],['dmedia','米迪亞暴龍'],
+  ['lamigo','Lamigo桃猿'],['rhinos','義大犀牛'],['guardians','富邦悍將'],['rakuten','樂天桃猿'],['tsg','台鋼雄鷹']
+].map(([id, n]) => [byStage[id].color, n, byStage[id]]);
+const swatchBtn = ([c, n, st]) => `<button type="button" class="swatch${st ? ' team' : ''}" role="radio" aria-checked="${world.player.jersey === n}" data-jersey="${esc(n)}" data-color="${c}" style="--c:${c}"${st ? ` title="${esc(n)}（${st.league === 'tml' ? '台灣大聯盟' : '中職'}）"` : ''}><i></i>${esc(n)}</button>`;
+const jerseyPicker = () => `<p class="swatch-group">基本色</p><div class="swatches" role="radiogroup" aria-label="基本色球衣">${JERSEYS.map(swatchBtn).join('')}</div>
+  <p class="swatch-group">歷代球隊色 <small>中職與台灣大聯盟 ${TEAM_JERSEYS.length} 色，依加入年份</small></p><div class="swatches team-swatches" role="radiogroup" aria-label="歷代球隊色球衣">${TEAM_JERSEYS.map(swatchBtn).join('')}</div>`;
 const FACTS = [
   '1990 年開幕戰，臺北市立棒球場湧進了 1 萬 4350 人。',
   '1997 年，臺灣同時有兩個職棒聯盟，一共 11 支球隊。',
@@ -63,7 +73,7 @@ const FACTS = [
   '1999 年味全龍三連霸後解散，2021 年才回到一軍。'
 ];
 
-const world = {player:{x:28, y:34.2, dir:'up', moving:false, step:0, color:'#f6efe0'}, keys:{}, path:[], pending:null, near:null, room:null, zoom:1.6, cam:{x:0, y:0}, npcs:[], grid:[], blocked:[], last:0, paused:true};
+const world = {player:{x:28, y:34.2, dir:'up', moving:false, step:0, color:'#f6efe0', jersey:'米白'}, keys:{}, path:[], pending:null, near:null, room:null, zoom:1.6, cam:{x:0, y:0}, npcs:[], grid:[], blocked:[], last:0, paused:true};
 
 /* ---------- 地圖格子 ---------- */
 function buildGrid(){
@@ -618,7 +628,7 @@ function renderGuide(){
     <p class="pp-hint">點任何一格，直接前往那個展區。</p>
     <div class="passport">${STAMPS.map(s => `<button type="button" class="pp${stamps.has(s.id) ? ' done' : ''}" data-goto="${s.id}"><span class="pp-icon" aria-hidden="true">${s.icon}</span><span>${esc(s.label)}</span><small>${stamps.has(s.id) ? '已蓋章' : '未造訪'}</small></button>`).join('')}</div>
     <h3>換一件球衣</h3>
-    <div class="swatches" role="radiogroup" aria-label="球衣顏色">${JERSEYS.map(([c, n]) => `<button type="button" class="swatch" role="radio" aria-checked="${world.player.color === c}" data-jersey="${c}" style="--c:${c}"><i></i>${n}</button>`).join('')}</div>
+    ${jerseyPicker()}
     <h3>操作方式</h3>
     <ul class="controls-list"><li><kbd>↑↓←→</kbd> 或 <kbd>WASD</kbd> 走動，靠近展品按 <kbd>E</kbd> 或 <kbd>Enter</kbd></li><li>滑鼠／手機：點地板走過去，點展品自動走過去打開</li><li><kbd>Esc</kbd> 關閉展品，回到展廳</li></ul>
   </div>`;
@@ -696,13 +706,42 @@ function bindMuseum(){
   document.addEventListener('click', e => {
     const j = e.target.closest('[data-jersey]');
     if (!j) return;
-    world.player.color = j.dataset.jersey;
-    $$('[data-jersey]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.jersey === world.player.color)));
+    world.player.color = j.dataset.color; world.player.jersey = j.dataset.jersey;
+    $$('[data-jersey]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.jersey === world.player.jersey)));
+    $('#intro-choice').textContent='目前球衣：'+world.player.jersey;
+    $('#intro-choice').style.setProperty('--choice',world.player.color);
   });
   window.addEventListener('resize', resizeWorld);
 
   // 入館畫面
-  $('#swatches').innerHTML = JERSEYS.map(([c, n]) => `<button type="button" class="swatch" role="radio" aria-checked="${world.player.color === c}" data-jersey="${c}" style="--c:${c}"><i></i>${n}</button>`).join('');
+  let introTab='basic',introPage=0;
+  const introGuide=[
+    {title:'先挑一件球衣',text:$('.intro-text').textContent},
+    {title:'鍵盤走逛',text:'↑↓←→ 或 WASD 走動。靠近展品後，按 E 開啟參觀。'},
+    {title:'滑鼠與手機',text:'點地板就能走過去；點展品，角色會自動走到展品旁並打開。'},
+    {title:'直接前往展區',text:'不想走路？右上角「館內地圖」可以直接前往任何展區。入館後，也可以到服務台更換球衣。'}
+  ];
+  const renderIntro=()=>{
+    const options=$('#swatches'),items=introTab==='teams'?TEAM_JERSEYS:JERSEYS;
+    const pages=introTab==='guide'?introGuide.length:Math.ceil(items.length/6);
+    introPage=Math.max(0,Math.min(introPage,pages-1));
+    $$('[data-intro-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.introTab===introTab)));
+    if(introTab==='guide'){
+      const item=introGuide[introPage];
+      options.innerHTML=`<div class="intro-guide-page"><h2>${esc(item.title)}</h2><p>${esc(item.text)}</p></div>`;
+    }else{
+      options.innerHTML=`<p class="intro-options-label">${introTab==='teams'?`中職與台灣大聯盟 · ${TEAM_JERSEYS.length} 色，依加入年份`:'挑一個喜歡的顏色，穿上就出發。'}</p><div class="swatches intro-swatch-grid" role="radiogroup" aria-label="${introTab==='teams'?'歷代球隊色':'基本色'}球衣">${items.slice(introPage*6,introPage*6+6).map(swatchBtn).join('')}</div>`;
+    }
+    $('#intro-page-count').textContent=`${introPage+1} / ${pages}`;
+    $('[data-intro-step="-1"]').disabled=introPage===0;
+    $('[data-intro-step="1"]').disabled=introPage===pages-1;
+  };
+  $('#intro').addEventListener('click',e=>{
+    const tab=e.target.closest('[data-intro-tab]'),step=e.target.closest('[data-intro-step]');
+    if(tab){introTab=tab.dataset.introTab;introPage=0;renderIntro();}
+    else if(step){introPage+=Number(step.dataset.introStep);renderIntro();}
+  });
+  renderIntro();
   const enter = () => {
     $('#intro-ticket').classList.add('torn');
     later(() => {

@@ -331,7 +331,7 @@ const innings = [
    {year:2003, focus:['first','macoto-sun'], merge:true, html:`<p class="lede">2003 年 1 月 13 日，兩聯盟簽下整合協議。</p><p>TML 解散，四支球隊兩兩整併，加入中職。剛剛那道題，連老球迷都常答錯。</p><p>名字會騙人：叫「金剛」的那隊，前身沒有臺中金剛；叫「太陽」的那隊，前身也沒有臺北太陽。太陽和金剛的名字，交換了位置。</p>`, event:'integration'},
    {year:2004, focus:['lanew','cobras'], html:`<p>隔年，兩支整併球隊都換上新面孔。</p><p>La New 接手第一金剛，變成 <b>La New熊</b>；誠泰從冠名企業變成經營者，太陽改名 <b>誠泰COBRAS</b>。</p><p>中職以六隊重新出發，全年進場人數重回百萬。</p>`, event:'new-owners'}
  ]},
- {n:6, years:'2006–2009', title:'再跌倒', tagline:'巨砲歸來，風暴又起', steps:[
+ {n:6, years:'2006–2010', title:'再跌倒', tagline:'巨砲歸來，風暴又起', steps:[
    {year:2006, focus:['lanew'], photo:'chen2016', html:`<p class="lede">2006 年，陳金鋒回來了。</p><p>旅美返臺的「台灣巨砲」加入 La New熊，同一年球隊就拿下總冠軍。他在這支球隊一路打到 2016 年引退。</p>`, event:'chen-return'},
    {year:2008, focus:['dmedia','whales'], tone:'dark', html:`<p class="lede">2008 年，風暴再起。</p><p>接手誠泰的 <b>米迪亞暴龍</b>，因球團涉入簽賭事件，被聯盟除名。中信鯨也在季後解散。</p><p>2009 年，中職又回到四隊。從 1997 到 2008，十一年間兩度重傷，球迷一次又一次離開。</p>`, event:'contraction'}
  ]},
