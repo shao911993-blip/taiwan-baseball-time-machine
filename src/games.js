@@ -15,6 +15,9 @@ const plateFront=fieldPoint(0,.4318),plateLeft=fieldPoint(-.2159,.2159),plateRig
 const zoneTop=fieldPoint(0,.2159,1.02),zoneBottom=fieldPoint(0,.2159,.45);
 const ZONE = {x:plateLeft.x,y:zoneTop.y,w:plateRight.x-plateLeft.x,h:zoneBottom.y-zoneTop.y};
 const BALL_R = 5.3;
+// bx uses the pitcher's anatomy: positive = arm side, negative = glove side.
+// A right-handed pitcher's arm side is screen right behind him, screen left
+// from the catcher. Never reuse screen coordinates across the two cameras.
 const PITCHES = {
   fb:{name:'四縫線直球', en:'FOUR-SEAM', color:'#e4bd79', kmh:[140,152], bx:0, by:14, err:9, desc:'用速度壓縮打者的反應時間，球路最接近直線。'},
   sl:{name:'滑球', en:'SLIDER', color:'#86b9d3', kmh:[125,136], bx:-170, by:65, err:13, desc:'向投手手套側橫移，伴隨下沉，讓打者追著偏離的球路揮棒。'},
@@ -179,10 +182,28 @@ function installGameSidebar(host,learn){
   if(desc)sections.push({id:'route',label:'球路',read:()=>[{text:desc.textContent},{html:route.innerHTML}]});
   if(result)sections.push({id:'result',label:'判定詳情',read:()=>result.hidden?[]:[{text:gameReadableText(result)}]});
   const reader=gameReader($('.game-reader',host),sections);
+  const readerRoot=$('.game-reader',host),openHelp=document.createElement('button'),closeHelp=document.createElement('button');
+  openHelp.type=closeHelp.type='button';openHelp.className='game-help-toggle';closeHelp.className='game-help-close';
+  openHelp.textContent='玩法／說明';closeHelp.textContent='回到遊戲 ✕';openHelp.setAttribute('aria-expanded','false');
+  const links=document.createElement('div');links.className='game-side-links';sidebar.append(links);
+  const guide=$('.pitch-guide',sidebar);if(guide)links.append(guide);sidebar.append(openHelp);readerRoot.prepend(closeHelp);
+  const settings=document.createElement('button');settings.type='button';settings.className='game-settings-toggle';settings.textContent='球種／握法';settings.setAttribute('aria-expanded','false');if(guide)sidebar.append(settings);
+  const setSettings=value=>{sidebar.classList.toggle('settings-open',value);settings.setAttribute('aria-expanded',String(value));settings.textContent=value?'收起選單 ✕':'球種／握法';};
+  settings.addEventListener('click',()=>setSettings(!sidebar.classList.contains('settings-open')));
+  $('.game',host).addEventListener('click',e=>{if(e.target.closest('[data-pt],[data-bat-type]')&&document.documentElement.classList.contains('compact-landscape'))setSettings(false);});
+  $('.game',host).addEventListener('pointerdown',e=>{if(document.documentElement.classList.contains('compact-landscape')&&sidebar.classList.contains('settings-open')&&e.target.closest('canvas#g-canvas')){setSettings(false);e.preventDefault();e.stopPropagation();}},true);
+  const fullscreen=document.createElement('button');fullscreen.type='button';fullscreen.className='game-fullscreen';fullscreen.textContent='全螢幕';links.append(fullscreen);
+  fullscreen.hidden=!document.fullscreenEnabled||!document.documentElement.requestFullscreen;
+  let gameFullscreen=false;
+  fullscreen.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();gameFullscreen=false;}else{await document.documentElement.requestFullscreen();gameFullscreen=true;}}catch{fullscreen.textContent='已使用滿版';}});
+  gameRun.cleanup.push(()=>{if(gameFullscreen&&document.fullscreenElement)document.exitFullscreen().catch(()=>{});});
+  const showHelp=value=>{sidebar.classList.toggle('reading-open',value);openHelp.setAttribute('aria-expanded',String(value));reader.render();if(value)closeHelp.focus();else openHelp.focus();};
+  openHelp.addEventListener('click',()=>showHelp(true));closeHelp.addEventListener('click',()=>showHelp(false));
   let wasVisible=false;
   const observer=new MutationObserver(()=>{
     const visible=result&&!result.hidden;
     if(visible&&!wasVisible)reader.select('result');else reader.render();
+    openHelp.textContent=visible?'判定詳情':'玩法／說明';
     wasVisible=visible;
   });
   observer.observe(store,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});
@@ -197,29 +218,122 @@ function pitchRouteSVG(type){
 }
 const GRIP_ART = {fb:'{{GRIP:fb}}',sl:'{{GRIP:sl}}',cb:'{{GRIP:cb}}',ch:'{{GRIP:ch}}',si:'{{GRIP:si}}',ct:'{{GRIP:ct}}',fs:'{{GRIP:fs}}',sv:'{{GRIP:sv}}'};
 const GRIP_REFERENCE = {fb:'Four-seam_fastball_1.JPG',sl:'Slider_1.JPG',cb:'Curve_1.JPG',ch:'Circle_change_1_(cropped).JPG'};
+function pitchNotebookDiagram(type){
+  const p=PITCHES[type],power=p.late?3:2;
+  const path=(top=false)=>Array.from({length:61},(_,i)=>{
+    const t=i/60,x=56+t*408;
+    const y=top?390+p.bx*.24*t**power:140+15*t+p.by*.25*t**power;
+    return `${i?'L':'M'}${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(' ');
+  const dots=(top=false)=>[0,.25,.5,.75,1].map(t=>`<circle cx="${56+408*t}" cy="${top?390+p.bx*.24*t**power:140+15*t+p.by*.25*t**power}" r="${t===1?7:3.5}" fill="${t===1?'#fff9e9':p.color}" stroke="${p.color}" stroke-width="2"/>`).join('');
+  return `<div class="notebook-route"><svg viewBox="0 0 520 570" role="img" aria-label="${p.name}側面下墜與上方橫移示意"><rect x="0" y="0" width="520" height="570" rx="12" fill="#173c32"/><g font-family="sans-serif"><text x="30" y="37" fill="#f4e9cc" font-size="17">${p.name} · 球路拆解</text><text x="30" y="65" fill="#adc3b6" font-size="12">右投手 ／ 出手 → 本壘</text><path d="M30 85H490 M30 287H490" stroke="#476557"/><text x="30" y="113" fill="#dcc58e" font-size="13">01　側面看下墜</text><path d="M56 140L464 155" stroke="#a3b8a9" stroke-dasharray="5 6" fill="none"/><path d="M40 250H480" stroke="#476557"/><path d="${path()}" fill="none" stroke="${p.color}" stroke-width="4" stroke-linecap="round"/>${dots()}<text x="48" y="274" fill="#adc3b6" font-size="12">出手</text><text x="440" y="274" fill="#adc3b6" font-size="12">本壘</text><text x="30" y="320" fill="#dcc58e" font-size="13">02　俯視：投手在左，本壘在右</text><path d="M56 390H464" stroke="#a3b8a9" stroke-dasharray="5 6"/><path d="${path(true)}" fill="none" stroke="${p.color}" stroke-width="4" stroke-linecap="round"/>${dots(true)}<text x="290" y="349" fill="#adc3b6" font-size="12">↑ 右投手的左側（手套側）</text><text x="290" y="460" fill="#adc3b6" font-size="12">↓ 右投手的右側（臂側）</text><path d="M30 495H490" stroke="#476557"/><path d="M32 521H60" stroke="${p.color}" stroke-width="3"/><text x="70" y="526" fill="#dce4d5" font-size="12">球路</text><path d="M137 521H165" stroke="#a3b8a9" stroke-dasharray="5 5"/><text x="175" y="526" fill="#dce4d5" font-size="12">未加變化的參考方向</text><text x="30" y="552" fill="#adc3b6" font-size="11">變化幅度放大示意，非實測軌跡；實際球路因投手而異。</text></g></svg></div>`;
+}
+// Model coordinates: +x is the right-handed pitcher's arm side, +y points
+// toward home, +z is height. Every camera projects this same 3D trajectory.
+function notebookPitchPoint(type,t){
+  const p=PITCHES[type],bend=t**(p.late?3:2);
+  return {x:p.bx/170*.8*bend,y:18.44*t,z:1.8-.35*t-p.by/230*.9*bend};
+}
+function installNotebook3D(art,type,state={}){
+  const root=document.createElement('div');root.className='notebook-route notebook-interactive';root.dataset.mode='3d';
+  root.innerHTML=`<div class="notebook-scene-head"><span>${PITCHES[type].name} · 空間球路</span><div class="notebook-mode"><button type="button" data-scene-mode="3d" aria-pressed="true">3D</button><button type="button" data-scene-mode="2d" aria-pressed="false">2D</button></div></div><div class="notebook-stage"><canvas tabindex="0" aria-label="${PITCHES[type].name}立體球路：拖曳或方向鍵旋轉，空白鍵暫停"></canvas><div class="notebook-flat" hidden>${pitchNotebookDiagram(type)}</div></div><div class="notebook-orbit-controls"><button type="button" data-orbit="oblique" aria-pressed="true">立體</button><button type="button" data-orbit="pitcher" aria-pressed="false">投手後方</button><button type="button" data-orbit="catcher" aria-pressed="false">捕手後方</button><button type="button" data-orbit="top" aria-pressed="false">俯視</button><button type="button" data-scene-play>暫停</button></div><p class="notebook-scene-note">拖曳旋轉 · 虛線為無變化參考<br>右投手；變化幅度放大示意，非實測軌跡。</p>`;
+  art.append(root);
+  const canvas=$('canvas',root),ctx=canvas.getContext('2d'),flat=$('.notebook-flat',root),play=$('[data-scene-play]',root);
+  const presets={oblique:[.95,.4],pitcher:[0,.2],catcher:[Math.PI,.2],top:[Math.PI/2,1.45]};
+  let yaw=state.yaw??.95,elevation=state.elevation??.4,playing=state.playing??!matchMedia('(prefers-reduced-motion: reduce)').matches,elapsed=state.elapsed??0,last=0,raf=0,active=true,disposed=false,drag=null;
+  root.dataset.mode=state.mode??'3d';flat.hidden=root.dataset.mode!=='2d';canvas.hidden=!flat.hidden;
+  $$('[data-scene-mode]',root).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sceneMode===root.dataset.mode)));
+  $$('[data-orbit]',root).forEach(b=>{const v=presets[b.dataset.orbit];b.setAttribute('aria-pressed',String(Math.abs(v[0]-yaw)<.001&&Math.abs(v[1]-elevation)<.001));});
+  play.textContent=playing?'暫停':'播放';
+  let cameraFit={scale:1,x:0,y:0};
+  const cameraPoint=point=>{
+    const x=point.x,y=point.y-9.22,z=point.z-.7,sy=Math.sin(yaw),cy=Math.cos(yaw),se=Math.sin(elevation),ce=Math.cos(elevation);
+    const depth=24-x*ce*sy+y*ce*cy-z*se;
+    return {x:(x*cy+y*sy)/depth,y:-(-x*se*sy+y*se*cy+z*ce)/depth,depth};
+  };
+  const project=(point,w,h)=>{const q=cameraPoint(point);return {x:w/2+(q.x-cameraFit.x)*cameraFit.scale,y:h/2+(q.y-cameraFit.y)*cameraFit.scale,scale:cameraFit.scale/q.depth};};
+  const draw=()=>{
+    const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
+    const dpr=Math.min(devicePixelRatio||1,2);if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const corners=[];for(const x of [-3,3])for(const y of [-1,20])for(const z of [0,2.2])corners.push(cameraPoint({x,y,z}));
+    const minX=Math.min(...corners.map(p=>p.x)),maxX=Math.max(...corners.map(p=>p.x)),minY=Math.min(...corners.map(p=>p.y)),maxY=Math.max(...corners.map(p=>p.y));
+    cameraFit={scale:Math.min(Math.max(1,w-52)/(maxX-minX),Math.max(1,h-44)/(maxY-minY)),x:(minX+maxX)/2,y:(minY+maxY)/2};
+    const bg=ctx.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#102b26');bg.addColorStop(1,'#224c3d');ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+    const line=(points,color,width=1,dash=[])=>{ctx.beginPath();points.forEach((p,i)=>{const q=project(p,w,h);ctx[i?'lineTo':'moveTo'](q.x,q.y);});ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([]);};
+    const label=(text,p,color='#b5c9ba')=>{const q=project(p,w,h);ctx.font=`${w<350?10:12}px sans-serif`;ctx.textAlign='center';ctx.fillStyle=color;ctx.fillText(text,q.x,q.y);};
+    for(let y=0;y<=20;y+=2)line([{x:-3,y,z:0},{x:3,y,z:0}],'#3c6151');
+    for(let x=-3;x<=3;x++)line([{x,y:0,z:0},{x,y:20,z:0}],'#3c6151');
+    line([{x:0,y:0,z:0},{x:0,y:18.44,z:0}],'#bdac7d',1,[4,5]);
+    line([{x:-.43,y:18.44,z:.45},{x:.43,y:18.44,z:.45},{x:.43,y:18.44,z:1.25},{x:-.43,y:18.44,z:1.25},{x:-.43,y:18.44,z:.45}],'#d7d6ae',1.5);
+    line([{x:-.22,y:18.2,z:.01},{x:.22,y:18.2,z:.01},{x:.22,y:18.44,z:.01},{x:0,y:18.66,z:.01},{x:-.22,y:18.44,z:.01},{x:-.22,y:18.2,z:.01}],'#f5eacf',2);
+    line([{x:0,y:0,z:0},{x:0,y:0,z:1.8}],'#a9b8a4',1,[3,4]);
+    const points=Array.from({length:101},(_,i)=>notebookPitchPoint(type,i/100));
+    line(points.map(p=>({...p,z:.01})),'#78957d',1,[3,5]);
+    line([{x:0,y:0,z:1.8},{x:0,y:18.44,z:1.45}],'#c1c4ab',1.2,[5,6]);
+    line(points,PITCHES[type].color,2.5);
+    const t=playing?Math.min(1,(elapsed%3200)/2400):Math.min(1,elapsed/2400),point=notebookPitchPoint(type,t),q=project(point,w,h);
+    line([{...point,z:0},point],PITCHES[type].color,1,[3,4]);
+    const r=Math.max(4,Math.min(8,q.scale*.2)),glow=ctx.createRadialGradient(q.x-r*.3,q.y-r*.3,0,q.x,q.y,r);glow.addColorStop(0,'#fffef4');glow.addColorStop(1,'#d6ccb4');
+    ctx.beginPath();ctx.arc(q.x,q.y,r,0,Math.PI*2);ctx.fillStyle=glow;ctx.fill();ctx.strokeStyle='#b75a42';ctx.lineWidth=1;ctx.beginPath();ctx.arc(q.x,q.y,r*.55,-1,1);ctx.stroke();
+    label('出手',{x:0,y:-.9,z:0});label('本壘',{x:0,y:19.8,z:0},'#eddfba');
+    label('手套側',{x:-3,y:9.22,z:0});label('臂側',{x:3,y:9.22,z:0});
+    root.dataset.progress=t.toFixed(3);
+  };
+  const tick=now=>{raf=0;if(disposed||!active||root.dataset.mode!=='3d')return;if(playing){if(last)elapsed+=Math.min(80,now-last);last=now;}draw();if(playing)raf=requestAnimationFrame(tick);};
+  const refresh=()=>{if(!raf&&active&&root.dataset.mode==='3d'&&!disposed)raf=requestAnimationFrame(tick);};
+  const setActive=value=>{active=value;last=0;if(!value){cancelAnimationFrame(raf);raf=0;}else refresh();};
+  root.addEventListener('click',e=>{
+    const mode=e.target.closest('[data-scene-mode]'),view=e.target.closest('[data-orbit]');
+    if(mode){root.dataset.mode=mode.dataset.sceneMode;flat.hidden=root.dataset.mode!=='2d';canvas.hidden=!flat.hidden;$$('[data-scene-mode]',root).forEach(b=>b.setAttribute('aria-pressed',String(b===mode)));last=0;if(flat.hidden)refresh();}
+    if(view){[yaw,elevation]=presets[view.dataset.orbit];$$('[data-orbit]',root).forEach(b=>b.setAttribute('aria-pressed',String(b===view)));refresh();}
+    if(e.target.closest('[data-scene-play]')){playing=!playing;elapsed%=3200;if(playing&&elapsed>=2400)elapsed=0;play.textContent=playing?'暫停':'播放';last=0;refresh();}
+  });
+  canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointermove',e=>{if(!drag)return;yaw-=(e.clientX-drag.x)*.009;elevation=Math.max(.08,Math.min(1.48,elevation+(e.clientY-drag.y)*.007));drag={x:e.clientX,y:e.clientY};$$('[data-orbit]',root).forEach(b=>b.setAttribute('aria-pressed','false'));refresh();});
+  const release=()=>{drag=null;};canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);
+  canvas.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();play.click();}else if(e.key.startsWith('Arrow')){e.preventDefault();if(e.key==='ArrowLeft')yaw-=.15;if(e.key==='ArrowRight')yaw+=.15;if(e.key==='ArrowUp')elevation=Math.min(1.48,elevation+.1);if(e.key==='ArrowDown')elevation=Math.max(.08,elevation-.1);refresh();}});
+  const observer=new ResizeObserver(refresh);observer.observe(canvas);refresh();
+  return {setActive,getState(){return {mode:root.dataset.mode,yaw,elevation,playing,elapsed};},destroy(){disposed=true;cancelAnimationFrame(raf);observer.disconnect();root.remove();}};
+}
 function installPitchGuide(ui, getType, canOpen = () => true){
   const card = document.createElement('div'); card.className='pitch-guide';
   card.innerHTML='<button type="button" class="pitch-guide-open" aria-haspopup="dialog"></button>';
   const book=document.createElement('dialog');book.className='pitch-book';book.setAttribute('aria-labelledby','pitch-book-title');
   book.innerHTML=`<header class="pitch-book-head"><p>THE PITCHER’S NOTEBOOK <span>球種圖鑑</span></p><button type="button" class="pitch-book-close" aria-label="關閉球種圖鑑">✕</button></header><nav class="pitch-book-tabs" aria-label="瀏覽球種">${Object.entries(PITCHES).map(([id,p])=>`<button type="button" data-book-pitch="${id}" aria-pressed="false">${p.name}</button>`).join('')}</nav><div class="pitch-book-content"></div>`;
   ui.controls.after(card,book);
-  let browsing=getType(),bookReader=null;
+  let browsing=getType(),bookReader=null,routeViz=null,activeBookTab='grip',routeState={};
+  const syncBookTab=()=>{
+    const route=activeBookTab==='route';book.classList.toggle('show-route',route);
+    if(route&&!routeViz)routeViz=installNotebook3D($('.pitch-book-art',book),browsing,routeState);
+    routeViz?.setActive(route);
+  };
   const renderBook=()=>{
+    if(routeViz)routeState=routeViz.getState();
+    routeViz?.destroy();routeViz=null;
+    book.classList.remove('show-route');
     const type=browsing,p=PITCHES[type],g=PITCH_GUIDE[type];
     $$('[data-book-pitch]',book).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.bookPitch===type)));
     bookReader?.destroy();
     $('.pitch-book-content',book).innerHTML=`<figure class="pitch-book-art"><img src="${GRIP_ART[type]}" width="1122" height="1402" alt="${p.name}右手握球姿勢示意插畫"><figcaption>右手握法 · ${GRIP_REFERENCE[type]?'參考實拍重繪':'其中一種握法示意'}</figcaption></figure><div class="pitch-book-copy"><p class="lab-eyebrow">${p.en}</p><h2 id="pitch-book-title">${p.name}</h2><div class="game-reader"></div></div>`;
     bookReader=gameReader($('.game-reader',book),[
       {id:'grip',label:'握法',read:()=>[{text:`${g.focus}\n\n${g.grip}\n\n圖示為其中一種握法，實際球路因投手而異。`}]},
-      {id:'route',label:'球路',read:()=>[{text:`${p.desc}\n\n旋轉特性：${g.spin}`},{html:`${pitchRouteSVG(type)}<small>右投手・捕手視角，變化幅度放大示意</small>`}]},
+      {id:'route',label:'球路',read:()=>[{text:`${p.desc}\n\n旋轉特性：${g.spin}\n\n拖曳 3D 球路可旋轉視角，也能切換投手後方、捕手後方與俯視，觀察橫移和下墜。切回 2D 可分別對照側面與上方示意圖。`}]},
       {id:'read',label:'觀察',read:()=>[{text:g.read}]},
       {id:'source',label:'來源',read:()=>[{html:`<p><a href="${g.source}" target="_blank" rel="noopener noreferrer">閱讀更多球種知識 ↗</a></p><p class="grip-credit">${GRIP_REFERENCE[type]?`插畫以 imagegen 參考 <a href="https://commons.wikimedia.org/wiki/File:${GRIP_REFERENCE[type]}" target="_blank" rel="noopener noreferrer">Toto-artist 照片</a>重繪 · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 3.0</a>`:'握法為 imagegen 示意插畫；球種說明來源見上方連結。滑曲球的握法與命名會因投手而異。'}</p>`}]}
     ]);
+    bookReader.select(activeBookTab);syncBookTab();
   };
   $('.pitch-guide-open',card).addEventListener('click',()=>{if(!canOpen())return;browsing=getType();renderBook();book.showModal();});
   $('.pitch-book-close',book).addEventListener('click',()=>book.close());
-  book.addEventListener('click',e=>{const tab=e.target.closest('[data-book-pitch]');if(tab){browsing=tab.dataset.bookPitch;renderBook();}});
-  gameRun.cleanup.push(()=>{bookReader?.destroy();if(book.open)book.close();book.remove();});
+  book.addEventListener('click',e=>{
+    const tab=e.target.closest('[data-book-pitch]');if(tab){browsing=tab.dataset.bookPitch;renderBook();}
+    const read=e.target.closest('[data-read-tab]');if(read){
+      activeBookTab=read.dataset.readTab;syncBookTab();
+    }
+  });
+  book.addEventListener('close',()=>routeViz?.setActive(false));
+  gameRun.cleanup.push(()=>{routeViz?.destroy();bookReader?.destroy();if(book.open)book.close();book.remove();});
   const update = () => {
     const type=getType();
     $('.pitch-guide-open',card).innerHTML=`<img src="${GRIP_ART[type]}" width="80" height="100" alt=""><span><small>PITCH GUIDE</small><b>握法與球路圖鑑</b><span>查看${PITCHES[type].name} ↗</span></span>`;
@@ -503,7 +617,7 @@ function pitchPos(pt, p){
   const t=clamp01(p), f=.45*t/(1-.55*t);
   const bend=PITCHES[pt.type]?.late?Math.sqrt(27)/8*(f*f*f-f):f*f-f;
   // 曲率在整段飛行都可見；最後仍精準抵達判定使用的落點。
-  return {x:RELEASE.x+(pt.tx-RELEASE.x)*f+pt.bx*bend, y:RELEASE.y+(pt.ty-RELEASE.y)*f+pt.by*bend, r:1.5+(BALL_R-1.5)*f};
+  return {x:RELEASE.x+(pt.tx-RELEASE.x)*f-pt.bx*bend, y:RELEASE.y+(pt.ty-RELEASE.y)*f+pt.by*bend, r:1.5+(BALL_R-1.5)*f};
 }
 function drawPitch(c, pt, p){
   const end=clamp01(p), color=PITCHES[pt.type].color;
@@ -543,6 +657,12 @@ const countHUD = s => `<span class="cnt"><b>B</b>${dots(s.b, 3, 'b')}</span><spa
 const battedOutKind=()=>Math.random()<.5?'groundout':'flyout';
 const battedOutText=kind=>kind==='groundout'?'滾地球，出局！':'高飛球，接殺出局！';
 function flight(from, kind, camera='catcher'){
+  if(kind==='foul'&&camera==='pitcher'){
+    // Use the same ground coordinates as the painted foul lines. The old
+    // generic screen-space destination could put a called foul in fair grass.
+    const distance=rnd(7,10),side=(Math.random()<.5?-1:1)*distance*rnd(1.45,1.8);
+    return {from,kind,camera,t0:performance.now(),dur:1150,distance,side,originZ:18.6559,ground:Math.random()<.5};
+  }
   if(kind==='groundout'||kind==='flyout'){
     return {from,kind,camera,t0:performance.now(),dur:kind==='groundout'?1250:1350,
       distance:camera==='pitcher'?rnd(12,16):kind==='groundout'?rnd(18,26):rnd(32,48),
@@ -554,9 +674,9 @@ function flight(from, kind, camera='catcher'){
   return {from, to, kind, t0:performance.now(), dur:kind === 'hr' ? 1300 : 1000, peak:kind === 'hr' ? 230 : kind === 'out' ? 260 : 110};
 }
 function battedBallPose(f,progress){
-  const p=clamp01(progress),ground=f.kind==='groundout';
+  const p=clamp01(progress),ground=f.kind==='groundout'||f.ground===true;
   const back=f.camera==='pitcher',project=back?pitchingGroundPoint:fieldPoint;
-  const startZ=back?18.44:.2159,travel=ground?2*p-p*p:p;
+  const startZ=f.originZ??(back?18.44:.2159),travel=ground?2*p-p*p:p;
   const z=startZ+(back?-1:1)*f.distance*travel,x=f.side*travel;
   let height;
   if(!ground)height=.72*(1-p)+4*(back?3.8:5)*p*(1-p)+1.2*p;
@@ -574,7 +694,7 @@ function battedBallPose(f,progress){
 }
 function drawFlight(c, f, now){
   const p = clamp01((now - f.t0) / f.dur);
-  if(f.kind==='groundout'||f.kind==='flyout'){
+  if(f.kind==='groundout'||f.kind==='flyout'||(f.kind==='foul'&&f.camera==='pitcher')){
     const ball=battedBallPose(f,p);
     ell(c,ball.groundX,ball.groundY,Math.max(2,ball.r*1.35),Math.max(.7,ball.r*.35),`rgba(8,22,14,${.28/(1+ball.height)})`);
     drawBall(c,ball.x,ball.y,ball.r);
@@ -586,6 +706,63 @@ function drawFlight(c, f, now){
 }
 
 /* ===================== 1. 打擊練習 ===================== */
+const GAME_ABS_MODEL={zone:ZONE,radius:BALL_R,pixelsPerMeter:ZONE.w/.4318};
+function pitchingActualTarget(type,aim){
+  const p=PITCHES[type],edge=Math.max(Math.abs(aim.x-(ZONE.x+ZONE.w/2))/(ZONE.w/2),Math.abs(aim.y-(ZONE.y+ZONE.h/2))/(ZONE.h/2));
+  const spread=p.err*(edge>.75?1.8:1.15),miss=Math.random()<.12?2.1:1;
+  return {x:aim.x+rnd(-spread,spread)*miss,y:aim.y+rnd(-spread,spread)*miss};
+}
+function fieldUmpireCall(point){
+  const result=absDecision(point,GAME_ABS_MODEL),band=BALL_R*2/GAME_ABS_MODEL.pixelsPerMeter*1000;
+  const errorChance=.42*Math.max(0,1-Math.abs(result.marginMm)/band);
+  return {truth:result.call,call:Math.random()<errorChance?(result.call==='strike'?'ball':'strike'):result.call};
+}
+function applyTakenCount(S,call){
+  if(call==='strike'){
+    S.s++;if(S.s>=3){S.k++;S.o++;S.b=0;S.s=0;return '站著不動，三振！';}
+    return '主審判好球';
+  }
+  S.b++;if(S.b>=4){S.bb++;S.b=0;S.s=0;return '四壞球，保送';}return '主審判壞球';
+}
+function installGameChallenge(ui,S,mode,hud){
+  const button=document.createElement('button');button.type='button';button.className='abs-review-btn';ui.controls.append(button);
+  const help=document.createElement('div');help.className='base-brief';help.textContent='邊角球可能誤判。不揮棒的好壞球判決可按 ABS／A 挑戰，每局 2 次，改判成功保留次數；揮空、界外與擊球結果不可挑戰。接受判決後才繼續下一球。投球瞄準為目標，實際進壘可能偏移，邊角及變化球較難控制。';ui.controls.append(help);
+  let remaining=2,pending=null;
+  const update=()=>{
+    button.disabled=!pending||remaining===0||Boolean(pending.review);
+    button.innerHTML=`ABS ${pending?.review?'已複判':'挑戰'} <small>A · 剩 ${remaining} 次</small>`;
+  };
+  const apply=call=>{
+    Object.assign(S,pending.before);const text=applyTakenCount(S,call);
+    S.phase=S.o>=3?'over':'result';S.until=Infinity;
+    return text;
+  };
+  const challenge=()=>{
+    if(!pending||!remaining||pending.review)return;
+    pending.review={started:performance.now(),done:false};ui.flash('ABS 複判中…');update();hud();
+  };
+  button.addEventListener('click',challenge);
+  update();
+  return {
+    update,challenge,get pending(){return Boolean(pending);},get busy(){return Boolean(pending?.review&&!pending.review.done);},
+    record(p){
+      const point={x:p.tx,y:p.ty},ruling=fieldUmpireCall(point);
+      pending={p:{...p},end:point,...ruling,before:Object.fromEntries(['b','s','o','k','bb'].map(k=>[k,S[k]])),review:null};
+      const text=apply(ruling.call);ui.flash(`${text} · 可按 A 挑戰，或接受判決繼續。`,'',0);update();hud();
+    },
+    commit(){if(!pending||this.busy)return false;if(S.phase==='over')stamp(mode);pending=null;update();return true;},
+    reset(){pending=null;remaining=2;update();},
+    draw(c,now){
+      if(!pending?.review)return;
+      drawABSReview(c,{...pending,abs:pending.review},now,GAME_ABS_MODEL,mode==='pitch'?'pitcher':'catcher');
+      if(!pending.review.done&&now-pending.review.started>=1500){
+        pending.review.done=true;const changed=pending.call!==pending.truth;if(!changed)remaining--;
+        const text=apply(pending.truth);
+        ui.flash(`ABS：${pending.truth==='strike'?'好球':'壞球'} · ${changed?'改判，保留挑戰次數':'維持原判，扣 1 次挑戰'}。${text}`,'',0);update();hud();
+      }
+    }
+  };
+}
 function battingGame(host){
   const ui = gameUI(host, {aria:'打擊練習：從捕手後方看投手投球，看準時機揮棒',
     learn:'<b>怎麼玩</b>：按「投球」，等球快到本壘時按「揮棒」（或空白鍵、點畫面）。好球帶外的球可以不揮，四個壞球就保送；兩好球後打成界外不會三振。打到三出局結束。<br><b>小知識</b>：時速 150 公里的直球，從投手手中到本壘不到 0.45 秒；這裡放慢了約兩倍。'});
@@ -598,10 +775,12 @@ function battingGame(host){
   ui.controls.addEventListener('click',e=>{const b=e.target.closest('[data-bat-type]');if(!b)return;S.type=b.dataset.batType;$$('[data-bat-type]',ui.controls).forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.batType===S.type)));updateGuide();});
   const hud = () => {
     ui.hud.innerHTML = countHUD(S) + `<span class="stat">安打 <b>${S.hits}</b></span><span class="stat">全壘打 <b>${S.hr}</b></span><span class="stat">保送 <b>${S.bb}</b></span>`;
-    btn.textContent = S.phase === 'over' ? '再打一局 ↗' : S.phase === 'pitch' ? (S.swung?'已揮棒':'揮棒！ SPACE') : S.phase === 'windup' ? '投手準備中…' : S.phase === 'result' ? '下一球準備中…' : '開始投球 →';
-    btn.disabled=S.phase==='windup'||S.phase==='result'||(S.phase==='pitch'&&S.swung);
+    btn.textContent = challenge.pending?'接受判決 · 繼續 →':S.phase === 'over' ? '再打一局 ↗' : S.phase === 'pitch' ? (S.swung?'已揮棒':'揮棒！ SPACE') : S.phase === 'windup' ? '投手準備中…' : S.phase === 'result' ? '下一球準備中…' : '開始投球 →';
+    btn.disabled=challenge.busy||S.phase==='windup'||(S.phase==='result'&&!challenge.pending)||(S.phase==='pitch'&&S.swung);
+    challenge.update();
     updateGuide.busy();
   };
+  const challenge=installGameChallenge(ui,S,'bat',hud);
   const endPA = (text, kind) => { S.b = 0; S.s = 0; ui.flash(text, kind); };
   const out = text => {
     S.o++; S.b = 0; S.s = 0;
@@ -615,9 +794,7 @@ function battingGame(host){
   const take = () => {
     const end = pitchPos(S.p, 1);
     S.mitt = end;
-    if (touchesZone(end.x, end.y)){ S.s++; if (S.s >= 3){ S.k++; out('站著被三振！'); } else ui.flash('好球！'); }
-    else { S.b++; if (S.b >= 4){ S.bb++; endPA('四壞球，保送上壘', 'good'); } else ui.flash('壞球'); }
-    settle();
+    challenge.record(S.p);
   };
   const swing = () => {
     if (S.swung) return;
@@ -641,10 +818,12 @@ function battingGame(host){
     settle();
   };
   const act = () => {
-    if (S.phase === 'over'){ Object.assign(S, {phase:'idle', b:0, s:0, o:0, hits:0, hr:0, bb:0, k:0}); ui.flash('新的一局！'); hud(); return; }
+    if(challenge.busy)return;
+    if(challenge.pending){challenge.commit();if(S.phase==='over'){hud();return;}S.phase='idle';}
+    if (S.phase === 'over'){ challenge.reset();Object.assign(S, {phase:'idle', b:0, s:0, o:0, hits:0, hr:0, bb:0, k:0}); ui.flash('新的一局！'); hud(); return; }
     if (S.phase === 'idle'){
       S.phase = 'windup'; S.t0 = performance.now(); S.mitt = null; S.fly = null; S.swung = false; S.pendingSwing=false; S.swingT=0; S.whiff = false;
-      S.p = newPitch(S.type==='mix'?pickType():S.type, randomTarget(.6));
+      S.p = newPitch(S.type==='mix'?pickType():S.type, randomTarget(.4,.42));
       updateGuide();
       hud(); return;
     }
@@ -652,7 +831,7 @@ function battingGame(host){
   };
   btn.addEventListener('click', act);
   ui.canvas.addEventListener('pointerdown', act);
-  gameKeys(e => { if (e.key === ' ' && !e.target.closest('button')){ e.preventDefault(); if (!e.repeat) act(); } });
+  gameKeys(e => {if(e.key.toLowerCase()==='a'){e.preventDefault();challenge.challenge();}else if (e.key === ' ' && !e.target.closest('button')){ e.preventDefault(); if (!e.repeat) act(); } });
   hud();
   gameLoop(now => {
     const c = ui.ctx;
@@ -668,6 +847,7 @@ function battingGame(host){
     }
     if (S.mitt){ drawMitt(c, S.mitt.x, S.mitt.y); drawBall(c, S.mitt.x, S.mitt.y, BALL_R); }
     if (S.fly && drawFlight(c, S.fly, now)) S.fly = null;
+    challenge.draw(c,now);
   });
 }
 
@@ -685,20 +865,31 @@ function pitchingGame(host){
     $$('[data-pt]', ui.controls).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pt === S.type)));
     desc.textContent = `${PITCHES[S.type].name}：${PITCHES[S.type].desc}`;
     routePreview.innerHTML=`<span>投手視角 · 同一落點比較</span>${pitchingRouteSVG(S.type)}<small>變化幅度放大示意</small>`;
-    $('#g-throw').textContent = S.phase === 'over' ? '再投一局 ↗' : S.phase==='idle' ? '投出去 →' : '投球進行中…';
-    $('#g-throw').disabled=!['idle','over'].includes(S.phase);
+    $('#g-throw').textContent = challenge.pending?(S.phase==='over'?'確認判決 · 結束本局':'下一球 · 重新瞄準 →'):S.phase === 'over' ? '再投一局 ↗' : S.phase==='idle' ? '投出去 →' : '投球進行中…';
+    $('#g-throw').disabled=challenge.busy||(!challenge.pending&&!['idle','over'].includes(S.phase));
+    challenge.update();
     updateGuide.busy();
   };
+  const challenge=installGameChallenge(ui,S,'pitch',hud);
   const resetCount = () => { S.b = 0; S.s = 0; };
   const over = text => { S.phase = 'over'; ui.flash(text, 'big', 0); stamp('pitch'); hud(); };
   const out = (text, kind = 'good') => { S.o++; resetCount(); if (S.o >= 3) over(`三上三下！三振 ${S.k}、被安打 ${S.h}`); else ui.flash(text, kind); };
   const settle = () => { if (S.phase !== 'over'){ S.phase = 'result'; S.until = performance.now() + 1400; } hud(); };
   const throwIt = () => {
-    if (S.phase === 'over'){ Object.assign(S, {phase:'idle', b:0, s:0, o:0, k:0, h:0, bb:0, last:null,p:null,trace:null,plan:null,swingT:0,fly:null,mitt:null,until:0}); ui.flash('新的一局！'); hud(); return; }
+    if(challenge.busy)return;
+    if(challenge.pending){
+      challenge.commit();
+      if(S.phase==='over'){hud();return;}
+      S.phase='idle';S.swingT=0;
+      ui.tip.textContent='請選球種並設定目標，再按「投出去」';
+      ui.flash('下一球準備：選球種 → 瞄準 → 投出去。');hud();updateGuide();return;
+    }
+    if (S.phase === 'over'){ challenge.reset();Object.assign(S, {phase:'idle', b:0, s:0, o:0, k:0, h:0, bb:0, last:null,p:null,trace:null,plan:null,swingT:0,fly:null,mitt:null,until:0}); ui.flash('新的一局！'); hud(); return; }
     if (S.phase !== 'idle') return;
     const P = PITCHES[S.type];
-    const target = {x:S.aim.x + rnd(-P.err, P.err), y:S.aim.y + rnd(-P.err, P.err)};
+    const target = pitchingActualTarget(S.type,S.aim);
     S.p = newPitch(S.type, target);
+    S.p.aim={...S.aim};
     const inZ = touchesZone(target.x, target.y);
     const cx=ZONE.x+ZONE.w/2,cy=ZONE.y+ZONE.h/2;
     const heart = Math.abs(target.x-cx)<ZONE.w*.23&&Math.abs(target.y-cy)<ZONE.h*.24;
@@ -725,11 +916,11 @@ function pitchingGame(host){
       else { if (S.s < 2) S.s++; ui.flash('界外球'); }
     } else {
       S.mitt = end;
-      if (plan.swing || plan.inZ){ S.s++; if (S.s >= 3){ S.k++; out(plan.swing ? '揮棒落空，三振！' : '站著不動，三振！', 'big'); if (S.phase !== 'over') celebrateGame(ui); } else ui.flash(plan.swing ? '揮空！好球' : '好球！'); }
-      else { S.b++; if (S.b >= 4){ S.bb++; resetCount(); ui.flash('四壞球保送', 'bad'); } else ui.flash('壞球'); }
+      if (plan.swing){ S.s++; if (S.s >= 3){ S.k++; out('揮棒落空，三振！','big'); if (S.phase !== 'over') celebrateGame(ui); } else ui.flash('揮空！好球'); }
+      else challenge.record(S.p);
     }
     S.p = null;
-    settle();
+    if(challenge.pending)hud();else settle();
   };
   ui.controls.addEventListener('click', e => { const b = e.target.closest('[data-pt]'); if (b){ S.type = b.dataset.pt; hud(); updateGuide(); } });
   $('#g-throw').addEventListener('click', throwIt);
@@ -738,7 +929,8 @@ function pitchingGame(host){
   gameKeys(e => {
     if (e.target.closest('button') && e.key === ' ') return;
     const step = 8, k = e.key;
-    if (/^[1-8]$/.test(k)){ S.type = Object.keys(PITCHES)[+k - 1]; showPitchPage($('.pitch-picker',ui.controls),Math.floor((+k-1)/4));hud(); updateGuide(); }
+    if(k.toLowerCase()==='a'){e.preventDefault();challenge.challenge();}
+    else if (/^[1-8]$/.test(k)){ S.type = Object.keys(PITCHES)[+k - 1]; showPitchPage($('.pitch-picker',ui.controls),Math.floor((+k-1)/4));hud(); updateGuide(); }
     else if(S.phase!=='idle' && k.startsWith('Arrow'))return;
     else if (k === 'ArrowLeft'){ S.aim.x -= step; e.preventDefault(); }
     else if (k === 'ArrowRight'){ S.aim.x += step; e.preventDefault(); }
@@ -763,32 +955,85 @@ function pitchingGame(host){
     if (S.mitt) drawBall(c, S.mitt.x, S.mitt.y, 1.9);
     if(S.trace&&S.phase!=='pitch'&&S.phase!=='windup'){
       drawPitchingBall(c,S.trace,1,false);
+      if(S.trace.aim){const aim=pitchingTarget({tx:S.trace.aim.x,ty:S.trace.aim.y}),actual=pitchingPitchPos(S.trace,1);c.save();c.strokeStyle='#e1ca88';c.lineWidth=1;c.setLineDash([3,3]);c.beginPath();c.moveTo(aim.x,aim.y);c.lineTo(actual.x,actual.y);c.stroke();c.setLineDash([]);c.beginPath();c.arc(aim.x,aim.y,4,0,Math.PI*2);c.stroke();drawBall(c,actual.x,actual.y,2);c.restore();}
       c.textAlign='left';c.font='10px sans-serif';c.fillStyle=PITCHES[S.trace.type].color;c.fillText(`上一球軌跡 · ${PITCHES[S.trace.type].name}`,22,65);
     }
     if(S.fly&&drawFlight(c,S.fly,now))S.fly=null;
+    challenge.draw(c,now);
   });
 }
 
 /* ===================== 3. 主審體驗 ===================== */
+const ABS_MODEL=(()=>{
+  const height=1.8,top=fieldPoint(0,.2159,height*.535),bottom=fieldPoint(0,.2159,height*.27);
+  const pixelsPerMeter=ZONE.w/.4318;
+  return {height,zone:{x:ZONE.x,y:top.y,w:ZONE.w,h:bottom.y-top.y},radius:.0366*pixelsPerMeter,pixelsPerMeter};
+})();
+function absDecision(point,model=ABS_MODEL){
+  const z=model.zone,r=model.radius,cx=z.x+z.w/2,cy=z.y+z.h/2;
+  const dx=Math.abs(point.x-cx)-z.w/2,dy=Math.abs(point.y-cy)-z.h/2;
+  const signed=Math.hypot(Math.max(dx,0),Math.max(dy,0))+Math.min(Math.max(dx,dy),0);
+  const margin=r-signed;
+  return {call:margin>=-1e-9?'strike':'ball',marginMm:margin/model.pixelsPerMeter*1000};
+}
+function drawABSZone(c){
+  const z=ABS_MODEL.zone;c.save();c.strokeStyle='#dcc88d';c.lineWidth=1.2;c.strokeRect(z.x,z.y,z.w,z.h);
+  c.strokeStyle='rgba(220,200,141,.35)';for(let i=1;i<3;i++){c.beginPath();c.moveTo(z.x+z.w*i/3,z.y);c.lineTo(z.x+z.w*i/3,z.y+z.h);c.moveTo(z.x,z.y+z.h*i/3);c.lineTo(z.x+z.w,z.y+z.h*i/3);c.stroke();}c.restore();
+}
+function drawABSReview(c,S,now,model=ABS_MODEL,camera='catcher'){
+  const elapsed=now-S.abs.started,t=clamp01(elapsed/1500),z=model.zone;
+  c.fillStyle='rgba(7,23,22,.82)';c.fillRect(0,0,GW,GH);
+  c.textAlign='left';c.fillStyle='#dfcb91';c.font='600 13px sans-serif';c.fillText('ABS · 自動好壞球複判',24,36);
+  c.fillStyle='#bbc9b6';c.font='11px sans-serif';c.fillText(`右投手 ／ ${camera==='pitcher'?'投手後方':'捕手視角'} ／ 慢動作`,24,59);
+  // Replay the actual pitch, without generating a second target or decision.
+  if(camera==='catcher'){c.strokeStyle='#dcc88d';c.strokeRect(z.x,z.y,z.w,z.h);}
+  const p=camera==='pitcher'?pitchingPitchPos(S.p,t):pitchPos(S.p,t);drawBall(c,p.x,p.y,p.r*(camera==='pitcher'?1:model.radius/BALL_R));
+  c.fillStyle='#c2cbb8';c.font='11px sans-serif';c.fillText('實線框為本壘板中央的判定平面',24,409);
+  rrect(c,435,20,345,410,10,'#102b26');c.strokeStyle='#55684d';c.lineWidth=1;c.strokeRect(451,75,312,254);
+  c.fillStyle='#e8debd';c.font='600 15px sans-serif';c.fillText(t<1?'球路追蹤中…':'通過判定平面的瞬間',453,52);
+  const ball=S.end,r=model.radius;
+  const minX=Math.min(z.x,ball.x-r),maxX=Math.max(z.x+z.w,ball.x+r),minY=Math.min(z.y,ball.y-r),maxY=Math.max(z.y+z.h,ball.y+r);
+  const k=Math.min(270/(maxX-minX+20),215/(maxY-minY+20));
+  const centerX=(minX+maxX)/2,centerY=(minY+maxY)/2;
+  c.save();c.translate(607-centerX*k,202-centerY*k);c.scale(k,k);
+  c.fillStyle='rgba(219,200,144,.08)';c.fillRect(z.x,z.y,z.w,z.h);c.strokeStyle='#ddca90';c.lineWidth=1/k;c.strokeRect(z.x,z.y,z.w,z.h);
+  c.setLineDash([3/k,4/k]);for(let i=1;i<3;i++){c.beginPath();c.moveTo(z.x+z.w*i/3,z.y);c.lineTo(z.x+z.w*i/3,z.y+z.h);c.moveTo(z.x,z.y+z.h*i/3);c.lineTo(z.x+z.w,z.y+z.h*i/3);c.stroke();}c.setLineDash([]);
+  if(t===1){drawBall(c,ball.x,ball.y,r);c.strokeStyle=S.truth==='strike'?'#9cd7ab':'#f0a68b';c.lineWidth=2/k;c.beginPath();c.arc(ball.x,ball.y,r+3/k,0,Math.PI*2);c.stroke();}
+  else{c.strokeStyle='#86afa1';c.lineWidth=2/k;c.beginPath();c.moveTo(z.x,z.y+z.h*t);c.lineTo(z.x+z.w,z.y+z.h*t);c.stroke();}
+  c.restore();
+  c.font='600 22px sans-serif';c.fillStyle=t<1?'#e4d6ac':S.truth==='strike'?'#a5deb4':'#edb097';
+  c.fillText(t<1?'REVIEWING':S.truth==='strike'?'STRIKE · 好球':'BALL · 壞球',453,361);
+  c.font='12px sans-serif';c.fillStyle='#e7e0c9';
+  const original=S.call===null?'未下判決':S.call==='strike'?'好球':'壞球';
+  c.fillText(t<1?`原判：${original}`:`原判：${original} → ${S.call===null?'系統補判':S.call===S.truth?'維持原判':'改判'}`,453,386);
+  c.font='10px sans-serif';c.fillStyle='#aabaac';c.fillText(`${model.height?'180 cm 打者模型':'本模式好球帶'} · 教學模擬，非攝影機追蹤`,453,411);
+}
 function umpireGame(host){
   const TOTAL = 10;
   const ui = gameUI(host, {aria:'主審體驗：看球進壘，判好球或壞球',
     learn:'<b>好球帶</b>：本壘板正上方，上緣約在打者肩膀與腰帶的中間，下緣在膝蓋下方。<b>球只要有任何一部分擦過好球帶，就是好球。</b><br><b>怎麼玩</b>：按「下一球」，球進手套後 3 秒內判決：好球（← 或 S）、壞球（→ 或 B）。'});
-  const S = {phase:'idle', n:0, right:0, p:null, t0:0, end:null, deadline:0, call:null, truth:null};
+  const S = {phase:'idle', n:0, right:0, p:null, t0:0, end:null, deadline:0, call:null, truth:null,abs:null};
+  let summaryTimer;gameRun.cleanup.push(()=>clearTimeout(summaryTimer));
   ui.controls.innerHTML = `<button type="button" class="btn btn-gold big-action" id="g-next">下一球 ▶</button>
-    <div class="call-btns"><button type="button" class="call strike" id="g-strike" disabled>好球 STRIKE<small>← / S</small></button><button type="button" class="call ball" id="g-ball" disabled>壞球 BALL<small>→ / B</small></button></div>`;
+    <div class="call-btns"><button type="button" class="call strike" id="g-strike" disabled>好球 STRIKE<small>← / S</small></button><button type="button" class="call ball" id="g-ball" disabled>壞球 BALL<small>→ / B</small></button></div><button type="button" class="abs-review-btn" id="g-abs" disabled>ABS 複判 <small>A · 先完成判決</small></button>`;
+  const absHelp=document.createElement('div');absHelp.className='base-brief';absHelp.textContent='ABS 教學複判：先自行判決，再按 ABS 或 A 看慢動作及系統結果。採 180 cm 打者模型，好球帶高 27%–53.5%、寬 43.18 cm，球體擦線即好球；本體驗不限複判次數。判對數保留你的原始成績。';ui.controls.append(absHelp);
   const hud = () => {
     ui.hud.innerHTML = `<span class="stat">第 <b>${Math.min(S.n + (S.phase === 'idle' ? 1 : 0), TOTAL)}</b> / ${TOTAL} 球</span><span class="stat">判對 <b>${S.right}</b></span>`;
     $('#g-strike').disabled = $('#g-ball').disabled = S.phase !== 'call';
     $('#g-next').textContent = S.phase === 'over' ? '再當一次主審' : '下一球 ▶';
-    $('#g-next').disabled = S.phase === 'windup' || S.phase === 'pitch' || S.phase === 'call';
+    $('#g-next').disabled = S.phase === 'windup' || S.phase === 'pitch' || S.phase === 'call'||Boolean(S.abs&&!S.abs.done);
+    $('#g-abs').disabled=!['reveal','over'].includes(S.phase)||!S.end||Boolean(S.abs&&!S.abs.done);
+    $('#g-abs').innerHTML=S.abs&&!S.abs.done?'ABS 追蹤中…':`ABS ${S.abs?'重播':'複判'} <small>A · ${S.end?'查看進壘位置':'先完成判決'}</small>`;
   };
   const next = () => {
-    if (S.phase === 'over'){ Object.assign(S, {phase:'idle', n:0, right:0}); ui.flash('準備好了嗎？'); hud(); return; }
+    if(S.abs&&!S.abs.done)return;
+    clearTimeout(summaryTimer);
+    if (S.phase === 'over'){ Object.assign(S, {phase:'idle', n:0, right:0,p:null,end:null,abs:null}); ui.flash('準備好了嗎？'); hud(); return; }
     if (S.phase !== 'idle' && S.phase !== 'reveal') return;
-    S.p = newPitch(pickType(), randomTarget(.33, .37));
+    const target=randomTarget(.33,.37),z=ABS_MODEL.zone;
+    S.p = newPitch(pickType(),{x:target.x,y:z.y+(target.y-ZONE.y)/ZONE.h*z.h});S.abs=null;
     S.end = pitchPos(S.p, 1);
-    S.truth = touchesZone(S.end.x, S.end.y) ? 'strike' : 'ball';
+    S.truth = absDecision(S.end).call;
     S.phase = 'windup'; S.t0 = performance.now(); S.call = null;
     ui.tip.textContent = `${PITCHES[S.p.type].name} · ${S.p.kmh} km/h`;
     hud();
@@ -799,24 +1044,26 @@ function umpireGame(host){
     const ok = call === S.truth;
     if (ok) S.right++;
     // 判斷是不是擦邊球
-    const cx = Math.max(ZONE.x, Math.min(S.end.x, ZONE.x + ZONE.w)), cy = Math.max(ZONE.y, Math.min(S.end.y, ZONE.y + ZONE.h));
-    const edge = Math.abs(Math.hypot(S.end.x - cx, S.end.y - cy) - BALL_R) < BALL_R && !(S.end.x > ZONE.x + BALL_R && S.end.x < ZONE.x + ZONE.w - BALL_R && S.end.y > ZONE.y + BALL_R && S.end.y < ZONE.y + ZONE.h - BALL_R);
+    const edge=Math.abs(absDecision(S.end).marginMm)<36.6;
     const why = call === null ? '猶豫太久了！主審要果斷。' : S.truth === 'strike' ? (edge ? '球擦到好球帶邊緣，算好球。' : '球通過好球帶。') : (edge ? '差一點點，球完全在好球帶外，是壞球。' : '球在好球帶外。');
     ui.flash(`${ok ? '✓ 判對了' : '✗ 判錯了'}｜正確：${S.truth === 'strike' ? '好球' : '壞球'}。${why}`, ok ? 'good' : 'bad', 2600);
     S.phase = S.n >= TOTAL ? 'over' : 'reveal';
     if (S.phase === 'over'){
       const pct = Math.round(S.right / TOTAL * 100);
-      setTimeout(() => ui.flash(`判對 ${S.right}/${TOTAL}（${pct}%）。${pct >= 90 ? '正式主審就是你！' : pct >= 70 ? '很穩，可以去二軍執法了。' : '主審不好當吧？再試一次。'}`, 'big', 0), 2700);
+      summaryTimer=setTimeout(() => ui.flash(`判對 ${S.right}/${TOTAL}（${pct}%）。${pct >= 90 ? '正式主審就是你！' : pct >= 70 ? '很穩，可以去二軍執法了。' : '主審不好當吧？再試一次。'}`, 'big', 0), 2700);
       stamp('ump');
     }
     hud();
   };
   $('#g-next').addEventListener('click', next);
+  const review=()=>{if(!['reveal','over'].includes(S.phase)||!S.end||(S.abs&&!S.abs.done))return;clearTimeout(summaryTimer);S.abs={started:performance.now(),done:false};ui.flash('ABS 複判中：追蹤同一顆球的進壘位置。','',1600);hud();};
+  $('#g-abs').addEventListener('click',review);
   $('#g-strike').addEventListener('click', () => judge('strike'));
   $('#g-ball').addEventListener('click', () => judge('ball'));
   gameKeys(e => {
     const k = e.key.toLowerCase();
-    if (k === 'arrowleft' || k === 's'){ e.preventDefault(); judge('strike'); }
+    if(k==='a'){e.preventDefault();review();}
+    else if (k === 'arrowleft' || k === 's'){ e.preventDefault(); judge('strike'); }
     else if (k === 'arrowright' || k === 'b'){ e.preventDefault(); judge('ball'); }
     else if ((k === ' ' || k === 'enter') && !e.target.closest('button')){ e.preventDefault(); next(); }
   });
@@ -825,14 +1072,20 @@ function umpireGame(host){
     const c = ui.ctx;
     let windup = 0;
     if (S.phase === 'windup'){ windup = (now - S.t0) / WINDUP_MS; if (windup >= 1){ S.phase = 'pitch'; S.t0 = now; } }
-    drawCatcherScene(c, {pitcherFrame:pitcherFrame(S,now,windup), batterFrame:batterFrame(S,now,windup), zone:S.phase === 'reveal' || S.phase === 'over' ? 'grid' : false});
+    drawCatcherScene(c, {pitcherFrame:pitcherFrame(S,now,windup), batterFrame:batterFrame(S,now,windup), zone:false});
+    if(S.phase==='reveal'||S.phase==='over')drawABSZone(c);
+    if(S.abs){
+      drawABSReview(c,S,now);
+      if(!S.abs.done&&now-S.abs.started>=1500){S.abs.done=true;hud();ui.flash(`ABS：${S.truth==='strike'?'好球':'壞球'} · ${S.call===null?'系統補判':S.call===S.truth?'維持原判':'改判'}。`,'',0);}
+      return;
+    }
     if (S.phase === 'pitch'){
       const p = (now - S.t0) / S.p.dur;
       if (p >= 1){ S.phase = 'call'; S.deadline = now + 3000; hud(); }
-      const b = pitchPos(S.p, Math.min(p, 1)); drawBall(c, b.x, b.y, b.r);
+      const b = pitchPos(S.p, Math.min(p, 1)); drawBall(c, b.x, b.y, b.r*ABS_MODEL.radius/BALL_R);
     }
     if (S.phase === 'call' || S.phase === 'reveal' || (S.phase === 'over' && S.end)){
-      drawMitt(c, S.end.x, S.end.y); drawBall(c, S.end.x, S.end.y, BALL_R);
+      drawMitt(c, S.end.x, S.end.y); drawBall(c, S.end.x, S.end.y, ABS_MODEL.radius);
     }
     if (S.phase === 'call'){
       const left = clamp01((S.deadline - now) / 3000);
@@ -846,9 +1099,10 @@ function umpireGame(host){
       c.save(); c.beginPath(); c.arc(mx, my, R, 0, 7); c.clip();
       c.fillStyle = '#2a6e49'; c.fillRect(mx - R, my - R, R * 2, R * 2);
       c.translate(mx - S.end.x * k, my - S.end.y * k); c.scale(k, k);
-      c.fillStyle = 'rgba(243,201,105,.18)'; c.fillRect(ZONE.x, ZONE.y, ZONE.w, ZONE.h);
-      c.strokeStyle = '#f3c969'; c.lineWidth = 1; c.strokeRect(ZONE.x, ZONE.y, ZONE.w, ZONE.h);
-      drawBall(c, S.end.x, S.end.y, BALL_R);
+      const z=ABS_MODEL.zone;
+      c.fillStyle = 'rgba(243,201,105,.18)'; c.fillRect(z.x,z.y,z.w,z.h);
+      c.strokeStyle = '#f3c969'; c.lineWidth = 1; c.strokeRect(z.x,z.y,z.w,z.h);
+      drawBall(c, S.end.x, S.end.y, ABS_MODEL.radius);
       c.restore();
       c.strokeStyle = '#f6efe0'; c.lineWidth = 3; c.beginPath(); c.arc(mx, my, R, 0, 7); c.stroke();
       c.fillStyle = '#f6efe0'; c.font = '700 13px sans-serif'; c.textAlign = 'center'; c.fillText('放大 3 倍', mx, my + R + 16);

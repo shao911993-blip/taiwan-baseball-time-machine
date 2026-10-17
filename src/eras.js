@@ -162,6 +162,7 @@ function closeEraFilm(){
   const session=eraFilmSession;if(!session)return;
   eraFilmSession=null;
   clearEraFilmPlayer();$('#era-film').hidden=true;
+  museumMusic.release('era-film');
   if(session.token===era.token){
     era.paused=session.paused;
     $('#era-toggle').textContent=session.paused?'▶ 繼續':'❚❚ 暫停';
@@ -176,6 +177,7 @@ function openEraFilm(key,{automatic=false}={}){
   const paused=era.paused,token=era.token;
   let resolve;const promise=new Promise(done=>{resolve=done;});
   eraFilmSession={paused,token,promise,resolve};
+  museumMusic.hold('era-film');
   era.paused=true;
   $('#era-toggle').textContent='▶ 繼續';$('#park-stage').classList.add('paused');
   $('#era-film-title').textContent=video.title;

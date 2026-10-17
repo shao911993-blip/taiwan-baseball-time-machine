@@ -758,6 +758,19 @@ function bindMuseum(){
 }
 
 /* ---------- 啟動 ---------- */
+// Safari's browser bars change the visible height without entering standalone
+// mode. Fit the current visual viewport, including changes after rotation.
+let viewportFitFrame=0;
+function fitVisibleViewport(){
+  cancelAnimationFrame(viewportFitFrame);viewportFitFrame=requestAnimationFrame(()=>{
+    const v=window.visualViewport;if(v&&v.scale!==1)return;
+    const height=Math.round(Math.min(window.innerHeight,v?.height??window.innerHeight)),width=v?.width??window.innerWidth;
+    document.documentElement.style.setProperty('--visible-height',height+'px');
+    document.documentElement.style.setProperty('--visible-top',(v?.offsetTop??0)+'px');
+    document.documentElement.classList.toggle('compact-landscape',width>600&&height<=500&&width>height);
+  });
+}
+window.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('scroll',fitVisibleViewport);fitVisibleViewport();
 buildPark();
 buildLineage();
 renderIndex();
