@@ -1,0 +1,6 @@
+# 本機工具（ffmpeg 等，體積大且非網站所需）
+.tools/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db

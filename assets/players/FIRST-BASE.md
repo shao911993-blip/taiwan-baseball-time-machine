@@ -1,0 +1,22 @@
+# 一壘判讀視覺素材
+
+使用內建 image_gen 產生，原檔複製至專案，保留原始輸出。
+
+- `first-base-v1.png`：透明人物圖集，8 個跑步動作及 4 個一壘手動作。實際尺寸 1448 × 1086；部分圖像跨格，程式使用個別裁切範圍。
+- `first-base-stadium-v1.png`：場邊看台、草皮與紅土背景；壘包、球、壘線由 Canvas 繪製。
+- `base-verified.png`：實際 Canvas 呼叫的四階段合成重播預覽，並非瀏覽器截圖。
+
+程式以跑者接觸壘包的指定落腳姿勢對準判定時間。判決後顯示兩個事件時間與 0.2 倍速重播。人物仍是有限張圖像的動畫，並非影片或逐關節骨架動畫。
+
+驗證：`node .tools/verify-base-game.cjs`，涵蓋判定時間邊界、六輪操作、答案隱藏、鍵盤、慢速重播及重設。
+
+## 人物提示詞
+
+Use case: stylized-concept. Asset type: transparent baseball videogame character animation atlas. Create a premium realistically painted baseball sprite sheet, 1536x1152 pixels, EXACTLY 4 columns x 3 rows of square cells, 384x384 each, true transparent background, no grid, no text, no shadows on ground, no ball, no bats. Full body complete inside every cell with generous padding. Fixed orthographic SIDE CAMERA facing the first-base baseline; all athletes shown in profile. Cohesive natural anatomy, detailed fabric folds, helmet highlights, leather glove stitching, credible sports illustration, no cartoon stick figures.
+TOP TWO ROWS (8 cells reading order): same athletic adult runner sprinting toward screen RIGHT, dark navy batting helmet, dark forest-green jersey, ivory baseball pants, dark cleats. One continuous 8-pose running cycle, knees and bent arms alternate naturally, torso leans slightly forward, both feet remain within cell, no jumping or sliding. Frames 0 and 4 are full sprint extension with leading foot toward right and low to ground; frames 1,2,3 and 5,6,7 transition through passing and airborne phases. Consistent head height and same scale, athlete from y55 to y350, pelvis near x190. Every cell one person only, exactly two arms and two legs, no gloves or ball.
+BOTTOM ROW (4 cells): same first baseman wearing ivory baseball uniform, forest-green cap, brown leather glove on LEFT hand, profile facing screen LEFT. POSE0 relaxed ready position, POSE1 preparatory lean left, POSE2 full realistic stretch to LEFT to catch a throw: right/back cleat planted at x280,y348, left/front cleat at x100,y348, glove fully extended LEFT at x55,y175, torso leans left, knees naturally bent. POSE3 exactly same feet and stretched body as pose2, glove closes around invisible ball. First baseman scale comparable runner. Keep foot and glove coordinates in pose2 and3 identical. No base bag in artwork, code renders it. No equipment except one glove on first baseman. No extra limbs, ghosts, duplicated equipment, side-camera changes, lettering or logos. All12 figures have consistent rendering and lighting.
+
+## 場地提示詞
+
+Use case: stylized-concept. Asset type: premium realistic painted background for a baseball first-base close-call game. Create an EMPTY detailed professional baseball stadium background, wide landscape 16:9, intended 1600x900. No people anywhere in foreground, no players, no ball, no base bags, NO chalk lines, NO logos, NO typography or signs. Fixed low sideline camera looking PERPENDICULAR across first base, close to ground with a slight elevated view. The game overlays two full body athletes standing at 78% image height and renders its own bag and foul line. Therefore the whole lower 34% of image must be a broad continuous level red-brown baseball infield dirt surface, worn with believable fine clay texture, rake marks and subtle cleat marks, gently curving grass edge between y64%-70%. Narrow rich natural green grass strip in middle distance y54%-64%. Deep forest-green padded stadium wall at y44%-54%, quiet unbranded. Upper half sophisticated detailed Taiwan-style baseball stadium stands under evening lights: tiered grandstand seating, dark steel roof canopy, railings, stairs, softly blurred crowds in distance, glowing floodlights high near far edges. No iconic identifiable real stadium required. Cinematic muted slate-green, deep navy, warm ivory and terracotta palette; beautifully rendered realistic sports editorial game illustration with tactile fine grain and nuanced lighting, natural warm stadium light from upper left matching realistically painted athletes. Lower action area is brighter than the softly darker background so athletes remain readable. Calm spatially credible stadium architecture, no huge empty sky, no exaggerated fantasy, no flat geometric art or pixel graphics. Ground is horizontal with no perspective road, no diagonal paths, no pitcher's mound, no triangular dirt corridor. Crop to scene with action zone left-to-right across center foreground. Background only.
+

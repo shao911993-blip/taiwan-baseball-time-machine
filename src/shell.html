@@ -1,0 +1,84 @@
+<a class="skip" href="#map-btn">跳到館內地圖（不用走路也能逛）</a>
+
+<header class="nav" id="nav">
+  <span class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#f6efe0"/><path d="M8.5 7.5c4 5 4 12 0 17M23.5 7.5c-4 5-4 12 0 17" fill="none" stroke="#b2432f" stroke-width="1.8"/></svg>
+    <span>臺灣職棒時光機<small>博物館</small></span>
+  </span>
+  <span class="nav-room" id="nav-room" aria-live="polite">入口大廳</span>
+  <div class="nav-actions">
+    <button type="button" class="nav-btn stamp-btn" id="stamp-btn" aria-label="集章護照">🎫 集章 <b id="stamp-count">0/19</b></button>
+    <button type="button" class="nav-btn" id="map-btn">🗺 館內地圖</button>
+    <button type="button" class="nav-btn" id="help-btn" aria-label="操作說明">？</button>
+  </div>
+</header>
+
+<main class="museum" id="museum">
+  <canvas id="world" tabindex="0" aria-label="博物館平面圖。用方向鍵或 WASD 走動，靠近展品按 E 參觀；也可以點地板走過去、點展品直接前往。" aria-describedby="near-status"></canvas>
+  <canvas id="minimap" aria-hidden="true"></canvas>
+  <p class="sr-only" id="near-status" aria-live="polite"></p>
+  <div class="prompt" id="prompt" hidden>
+    <span class="prompt-key" aria-hidden="true">E</span><span id="prompt-text"></span>
+    <button type="button" class="prompt-btn" id="act-btn">參觀</button>
+  </div>
+  <p class="room-toast" id="room-toast" aria-hidden="true"></p>
+  <p class="museum-foot">資料查核截止 <span id="footer-date"></span> · 非中華職棒官方網站 · 插畫與旗幟為原創示意</p>
+</main>
+
+<!-- ============ 入館畫面 ============ -->
+<dialog class="intro" id="intro" aria-labelledby="intro-title">
+  <div class="intro-inner">
+    <div class="intro-copy">
+      <p class="kicker">TAIWAN BASEBALL MUSEUM · 1990–2026</p>
+      <h1 id="intro-title">臺灣職棒時光機</h1>
+      <p class="intro-sub">一張球票，走進臺灣職棒的時光。</p>
+      <p class="intro-text">這是一座可以自由走動的職棒博物館：九個年代的動態展櫃、會變的球場模型、球隊族譜與冠軍獎盃牆，還有<b>打擊、投球、主審、線審、壘審</b>五種體驗。逛完每一區，集滿 19 個章。</p>
+      <fieldset class="jersey-pick">
+        <legend>先選一件球衣（不分隊，挑你喜歡的顏色）</legend>
+        <div class="swatches" id="swatches"></div>
+      </fieldset>
+      <ul class="controls-list">
+        <li><kbd>↑↓←→</kbd> 或 <kbd>WASD</kbd> 走動，靠近展品按 <kbd>E</kbd> 參觀</li>
+        <li>滑鼠／手機：點地板走過去，點展品會自動走過去打開</li>
+        <li>不想走路？右上角「館內地圖」可以直接前往任何展區</li>
+      </ul>
+      <div class="intro-actions">
+        <button type="button" class="btn btn-gold" id="enter-btn">撕票入館 →</button>
+        <button type="button" class="btn btn-ghost" id="find-team">尋找球隊</button>
+      </div>
+    </div>
+    <button class="ticket" id="intro-ticket" type="button" aria-label="撕下票根入館">
+      <span class="ticket-main">
+        <span class="ticket-top"><span>ADMIT ONE</span><span>入館券</span></span>
+        <span class="ticket-title">臺灣職棒博物館</span>
+        <span class="ticket-match">1990 <em>→</em> 2026</span>
+        <span class="ticket-meta"><span>全票</span><span>9 展櫃 · 5 體驗</span></span>
+        <svg class="ticket-island" viewBox="0 0 44 72" aria-hidden="true"><path d="M27 3c6 1 9 6 8 12-1 10-3 19-6 28-2 9-6 17-9 25-2-6-6-13-8-21C9 37 9 27 12 19c3-8 8-15 15-16z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      </span>
+      <span class="ticket-stub"><span class="stub-no">No.000001</span><span class="stub-cta">撕票<br>入館</span></span>
+    </button>
+  </div>
+</dialog>
+
+<!-- ============ 展品視窗 ============ -->
+<dialog class="exhibit" id="exhibit" aria-labelledby="ex-title">
+  <div class="ex-head">
+    <div><p class="kicker" id="ex-kicker"></p><h2 id="ex-title" tabindex="-1"></h2></div>
+    <button type="button" class="ex-close" id="ex-close">回到展廳 ✕</button>
+  </div>
+  <div class="ex-body" id="ex-body"></div>
+  <div class="stamp-fx" id="stamp-fx" aria-hidden="true"></div>
+  <button class="return-quiz" id="return-quiz" type="button" hidden>↩ 回到挑戰賽</button>
+</dialog>
+
+<!-- ============ 館內地圖 ============ -->
+<dialog class="map-dialog" id="map-dialog" aria-labelledby="map-title">
+  <div class="ex-head">
+    <div><p class="kicker">MUSEUM MAP</p><h2 id="map-title">館內地圖</h2></div>
+    <button type="button" class="ex-close" id="map-close">關閉 ✕</button>
+  </div>
+  <div class="map-body" id="map-body"></div>
+</dialog>
+
+<!-- ============ 展品內容（開啟展品時移入展品視窗） ============ -->
+<div id="store" hidden>

@@ -1,0 +1,28 @@
+# 打擊過渡幀與球路可讀性
+
+## 最終使用方式
+
+投手模式打擊動畫共 8 個不同姿勢：準備、蓄力、落腳、轉髖初期、球棒接近、擊球、延伸、收棒。四個舊姿勢繼續使用原素材；新增四格分別補入過渡。
+
+- `batter-broadcast-steps-v1.png`：內建 imagegen 依既有兩套素材生成的新過渡圖集。右上格被使用者指出過早轉成正面，因此該格不使用。
+- `batter-broadcast-steps-v2.png`：內建 imagegen 只修正右上轉髖初期姿勢。執行時只取這個檔案的右上格，其餘三個新增姿勢仍取 v1，避免修改其他已保留的素材。
+- `pitching-batter-verified.png`：8 幀依序排列的本壘區放大合成預覽，非瀏覽器截圖。
+- `pitch-trajectory-verified.png`：直接重播遊戲實際球路繪圖，放大比較四球種，非資料實測圖。
+
+投球模式球路改用較容易閱讀的畫面弧線；變化幅度放大示意，並不宣稱是真實物理模擬。四球種飛行端點仍與計分落點一致，球體持續隨距離縮小。完整軌跡保留到下一球開始；側欄顯示同一落點下的球種示意。
+
+驗證 `node .tools/verify-pitcher-view.cjs`：8 格不同圖像、原四格保留、錯誤新增格被替換、接觸時序、球路相對直線的偏離幅度、端點一致、球體縮小與三出局流程。
+
+## 新增四格提示詞
+
+Use case: stylized-concept. Create FOUR NEW IN-BETWEEN animation sprites, not copies of the existing poses. References: image1 TOP ROW are APPROVED ready and load poses; image2 BOTTOM ROW are APPROVED contact and finish poses. Keep the exact same athlete, green jersey, ivory pants, navy helmet and shin guard, lighting, realistic painted detail and fixed CAMERA FROM BEHIND PITCHER looking toward the batter at the RIGHT of home plate. Do not recreate or replace the approved poses; output only four additional distinct transition poses to insert between them. TRUE TRANSPARENT 2x2 atlas,1254x1254 equal627px cells, full body and complete one wooden bat per cell, no overlap, 5% transparent padding. Match reference body height and shoe baseline y610 in each cell, feet centered around x375. Same generic face and equipment, exactly two arms/two legs, one bat held by both hands, no ghosts, text, bases, ball or shadows.
+NEW CELL0 TOP-LEFT: stride/plant just AFTER approved load (image1 top-right), before torso rotation. Front heel comes gently down, both feet compact and grounded, tiny forward stride in depth. Hands still beside rear ear, bat slightly less upright. Back-oblique jersey and head turned toward foreground LEFT as approved ready. NOT a knee kick or a wide split stance.
+NEW CELL1 TOP-RIGHT: hips begin rotating toward FOREGROUND PITCHER at down-left, rear heel starts pivot, shoulders still slightly closed, hands drop from rear ear toward chest; bat barrel starts to tilt back and around in depth. Part of jersey front button placket begins visible. This is halfway between the approved back-oblique load and FRONT-CHEST contact. Feet remain in same compact support rectangle, lead foot planted.
+NEW CELL2 BOTTOM-LEFT: bat approaches ball JUST BEFORE approved contact (image2 bottom-left). Torso rotated more with visible front chest, front belt buckle, shoulders in front-three-quarter view, hands around waist in front of leading hip, elbows naturally folded with hands leading barrel, bat still trailing the hands on its way DOWN-LEFT toward foreground camera, not flat sideways. This must be distinct from contact: elbows not yet extended, bat has not reached the contact plane. Head eyes follow ball foreground-left. NO broad jersey back panel facing viewer in this cell.
+NEW CELL3 BOTTOM-RIGHT: extension JUST AFTER approved front-facing contact (image2 bottom-left) but BEFORE approved high finish(image2 bottom-right). Torso FRONT CHEST and FRONT BELT facing viewer as hips have rotated. Both arms extend naturally out and forward-left into depth toward foreground pitcher, then begin rising across chest; one bat barrel points diagonally LEFT/UP in the followthrough arc, not already wrapped behind shoulder. Lead leg firm, rear heel rotates up, rear toe anchored. No back-facing finish from catcher camera.
+All four must form a single natural right-handed compact swing with the approved poses. Camera never flips or mirrors; only athlete rotates from back-oblique in early stance to visible chest/front during contact and extension. Front foot stays same position, no outward leg kick or large step. Maintain full-body athlete height, torso position and consistent anatomy across all cells. Generous padding especially bat tips. No white/gray/checkerboard background: actual alpha transparency.
+
+## 右上格修正提示詞
+
+Edit only the TOP-RIGHT cell of this transparent 2x2 baseball in-between sprite atlas. Keep the other THREE cells absolutely unchanged, preserve exact image dimensions, 2x2 cell layout, transparency, athlete scale and realistic painted style. The user says the top-right pose is WRONG because the chest opens square to the camera too early. It must be EARLY HIP ROTATION immediately after TOP-LEFT back-oblique heel-plant pose, before the bottom-left contact approach. Maintain the fixed camera behind the pitcher looking at batter to RIGHT of home plate. Redraw top-right athlete with shoulders STILL CLOSED much like top-left: mostly BACK / REAR THREE-QUARTER green jersey facing viewer, NO fully frontal chest panel or visible center button placket. Left/front shoulder stays pointed toward foreground-left pitcher, head looks toward foreground-left over leading shoulder. Hips start to open slightly under closed shoulders, rear heel begins pivoting, front foot braces in same compact stance. Hands lower ONLY a little from rear ear, remain loaded beside rear shoulder, NOT across front chest; rear elbow tucks slightly. ONE bat stays BEHIND head/shoulder toward upper RIGHT, a little flatter than top-left, do not swing it to the foreground yet. The clear motion difference from top-left should be subtle hip rotation, planted front heel and lowering hand position; NOT a camera reversal or a new frontal stance. Keep feet locations/baseline, body height, face, helmet, ivory pants/navy shin guard and one wooden bat consistent with top-left. Natural anatomy, no extra limbs/bats, no bat ghosts. Exactly one changed top-right character, untouched top-left/bottom-left/bottom-right, transparent alpha background.
+

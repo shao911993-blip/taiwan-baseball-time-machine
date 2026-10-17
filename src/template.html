@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>臺灣職棒時光機</title>
+<meta name="description" content="一張球票，走進臺灣職棒的時光。一座可以自由走動的中華職棒博物館：年代動態展櫃、會變的球場模型、球隊族譜，以及打擊、投球、主審、線審、壘審體驗。">
+<meta name="theme-color" content="#10251e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23f6efe0' stroke='%231f4d3a' stroke-width='4'/%3E%3Cpath d='M17 14c8 10 8 26 0 36M47 14c-8 10-8 26 0 36' fill='none' stroke='%23b2432f' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+/*STYLES*/
+</style>
+</head>
+<body>
+/*SHELL*/
+<!-- ===== 展品：球場模型（歷史長廊動畫與時光劇場共用） ===== -->
+<section class="ballpark" id="ballpark" aria-label="球場模型">
+  <div class="park-layout">
+    <div class="park-main">
+      <div class="park-stage" id="park-stage">
+        <div id="park-svg-wrap"></div>
+        <div class="park-overlay" id="park-overlay" aria-label="外野旗幟"></div>
+        <div class="park-fx" id="park-fx" aria-hidden="true"></div>
+        <p class="park-toast" id="park-toast" role="status" aria-live="polite"></p>
+        <div class="park-ribbon" id="park-ribbon" role="group" aria-label="球隊傳承"></div>
+      </div>
+      <div class="park-notes" aria-label="動畫字幕">
+        <p class="park-sub" id="park-sub" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+      <div class="desk" id="desk" role="group" aria-label="年份控制台" hidden>
+        <div class="desk-year">
+          <button class="round-btn" id="prev-year" type="button" aria-label="前一年">‹</button>
+          <output class="big-year" id="machine-year" for="year-range" aria-live="polite">1990</output>
+          <button class="round-btn" id="next-year" type="button" aria-label="後一年">›</button>
+        </div>
+        <div class="desk-slider">
+          <label for="year-range" class="sr-only">選擇年份（1990–2026）</label>
+          <input type="range" id="year-range" min="1990" max="2026" step="1" value="1990">
+          <div class="slider-ticks" aria-hidden="true"><span>1990</span><span>2000</span><span>2010</span><span>2020</span><span>2026</span></div>
+        </div>
+        <div class="desk-chips">
+          <div class="chip-group" role="group" aria-label="年代快捷鍵" id="decade-chips">
+            <button type="button" class="chip" data-decade="1990">90 年代</button>
+            <button type="button" class="chip" data-decade="2000">00 年代</button>
+            <button type="button" class="chip" data-decade="2010">10 年代</button>
+            <button type="button" class="chip" data-decade="2020">20 年代</button>
+          </div>
+          <div class="chip-group" role="group" aria-label="聯盟篩選" id="league-chips">
+            <button type="button" class="chip" data-league="all">全部聯盟</button>
+            <button type="button" class="chip" data-league="cpbl">中華職棒</button>
+            <button type="button" class="chip" data-league="tml">台灣大聯盟</button>
+          </div>
+          <button type="button" class="chip play-chip" id="autoplay">▶ 自動播放 36 年</button>
+        </div>
+      </div>
+    </div>
+    <aside class="mission-panel" id="mission-panel" aria-label="展品說明與播放控制">
+      <div id="mp-body"></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ===== 展品：這一年（時光劇場下半部） ===== -->
+<section class="machine" id="machine" aria-labelledby="machine-title">
+  <header class="section-head">
+    <p class="kicker">這一年 · THE SEASON</p>
+    <h2 id="machine-title">球場上的這一年。</h2>
+    <p>跟著上方球場的年份同步：當年的聯盟狀態、數據、球隊卡與歷史球票。點球隊卡看身世，點球票讀故事。</p>
+  </header>
+  <div class="year-board" id="year-board" aria-live="polite"></div>
+  <div class="rosters" id="rosters"></div>
+  <div class="tickets-area">
+    <div class="tickets-head">
+      <h3 id="tickets-title">這一年的歷史球票</h3>
+      <div class="chip-group" role="group" aria-label="事件類別篩選" id="category-chips">
+        <button type="button" class="chip" data-category="all">全部</button>
+        <button type="button" class="chip" data-category="聯盟發展"><span aria-hidden="true">◆</span> 聯盟發展</button>
+        <button type="button" class="chip" data-category="球隊變遷"><span aria-hidden="true">●</span> 球隊變遷</button>
+        <button type="button" class="chip" data-category="賽事與紀錄"><span aria-hidden="true">★</span> 賽事與紀錄</button>
+      </div>
+    </div>
+    <p class="filter-status" id="filter-status" role="status"></p>
+    <div class="tickets" id="tickets"></div>
+  </div>
+</section>
+
+<!-- ===== 展品：球隊族譜 ===== -->
+<section class="lineage" id="lineage" aria-labelledby="lineage-title">
+  <header class="section-head">
+    <p class="kicker">球隊族譜 · FAMILY TREE</p>
+    <h2 id="lineage-title">隊名會變，故事會留下。</h2>
+    <p>每一條橫線是一支球隊，每一段顏色是一個名字。點任何一段，看它從哪裡來、往哪裡去。名字相同不代表同一隊，整併也可能是兩隊變一隊。</p>
+  </header>
+  <ul class="legend" aria-label="圖例">
+    <li><i class="lg lg-solid"></i>中華職棒</li>
+    <li><i class="lg lg-hatch"></i>台灣大聯盟（TML）</li>
+    <li><i class="lg lg-merge"></i>整併（兩隊併成一隊）</li>
+    <li><i class="lg lg-gap"></i>解散後重新成立</li>
+    <li><i class="lg lg-cursor"></i>時光劇場目前年份</li>
+  </ul>
+  <div class="chart-scroll" tabindex="0" role="region" aria-label="球隊族譜圖，可左右捲動">
+    <div id="lineage-chart"></div>
+  </div>
+  <p class="scroll-hint">手機上可左右滑動族譜圖。</p>
+  <div class="team-index">
+    <div class="team-index-head">
+      <h3>全部 37 個隊名</h3>
+      <label class="search"><span class="sr-only">搜尋球隊名稱</span><input type="search" id="team-search" placeholder="搜尋：兄弟、雷公、桃猿…" autocomplete="off"></label>
+    </div>
+    <p class="filter-status" id="team-search-status" role="status"></p>
+    <div id="team-index"></div>
+  </div>
+</section>
+
+<!-- ===== 展品：冠軍獎盃牆 ===== -->
+<section class="trophies" id="trophies" aria-labelledby="trophies-title">
+  <header class="section-head">
+    <p class="kicker">冠軍獎盃牆 · CHAMPIONS</p>
+    <h2 id="trophies-title">每一年，都有一支球隊捧盃。</h2>
+    <p>1990–2025 年中職年度總冠軍，依當年真正使用的隊名記錄。點獎盃看那支球隊的身世。1992、1994、1995 年直接產生年度冠軍，未舉行總冠軍賽；2026 球季進行中，不預測。</p>
+  </header>
+  <div class="trophy-wall" id="trophy-wall"></div>
+</section>
+
+<!-- ===== 展品：歷史挑戰 ===== -->
+<section class="challenge" id="challenge" aria-labelledby="challenge-title">
+  <header class="section-head">
+    <p class="kicker">問答館長 · YOUR AT-BAT</p>
+    <h2 id="challenge-title">五局挑戰賽。</h2>
+    <p>從題庫隨機抽 5 題，每局一題，答對得 1 分（換算 20 分）。答案都藏在館內展品裡；不確定的話，送出後可以「回看歷史」再回來。</p>
+  </header>
+  <div class="scoreboard" id="quiz"></div>
+</section>
+
+<!-- ===== 展品：資料室 ===== -->
+<section class="sources" id="sources" aria-labelledby="sources-title">
+  <header class="section-head">
+    <p class="kicker">資料室 · THE ARCHIVE</p>
+    <h2 id="sources-title">每個故事，都有出處。</h2>
+    <p>資料查核截止：<strong id="checked-date"></strong>。館內內容與互動可離線使用，開啟外部來源需要網路。</p>
+  </header>
+  <div class="sources-body">
+    <div class="method">
+      <h3>我們怎麼記錄</h3>
+      <ul>
+        <li><b>以一軍參賽球季為準。</b>加盟、二軍培訓、一軍出賽分開記錄，例如味全 2019 加盟、2021 才回一軍。</li>
+        <li><b>當季隊名。</b>每年使用當時真正的隊名；季中更名（1996 熊→牛、2003 那魯灣→誠泰太陽、2000 臺中金剛冠名）保留兩個名字，但只算一隊。</li>
+        <li><b>關係分類。</b>更名、轉賣、冠名、整併（多對一）、解散後重新成立分開標示，不以名字相似推論承接。</li>
+        <li><b>不偏袒任何球隊。</b>館內以聯盟整體的變化為主線；冠軍、紀錄依年份平鋪列出。</li>
+        <li><b>爭議事件。</b>區分移送、起訴、判決與聯盟處分，不以傳聞代替事實。</li>
+        <li><b>數據口徑。</b>觀眾數為中職一軍例行賽，不含 TML、季後賽與明星賽，採非官方逐年彙整；2020、2021 含閉門賽。2026 球季進行中，不收錄未查核賽果。</li>
+        <li><b>體驗區規則。</b>主審、線審、壘審遊戲依一般棒球規則簡化：球的任何部分通過好球帶即為好球；界線本身屬於界內；跑者先踏壘為安全上壘。速度與動畫為示意。</li>
+        <li><b>插畫與照片。</b>建築、人物、旗幟與卡片均為本站原創示意，非官方標誌；照片為總統府 CC BY 2.0 授權影像，圖說註明拍攝日期。</li>
+      </ul>
+    </div>
+    <div class="source-list" id="source-list"></div>
+  </div>
+</section>
+
+<div id="game-host"></div>
+</div>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+  <div class="sheet-inner">
+    <button class="sheet-close" id="sheet-close" type="button" aria-label="關閉">關閉 ✕</button>
+    <div id="sheet-body"></div>
+  </div>
+</dialog>
+
+<noscript><p class="noscript">請啟用 JavaScript，才能進入博物館、操作展品與體驗遊戲。</p></noscript>
+
+<script>
+/*DATA*/
+</script>
+<script>
+/*APP*/
+</script>
+</body>
+</html>

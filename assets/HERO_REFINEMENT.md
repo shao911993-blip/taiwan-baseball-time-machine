@@ -1,0 +1,11 @@
+# 主視覺微修 v2
+
+日期：2026-10-16。工具：內建 image_gen 編輯模式，非 CLI。
+
+成品：`assets/taipei-stadium-hero-v2.png`。已內嵌 index.html；原 `taipei-stadium-hero.png` 保留。兩張使用者提供的老球場照片只供形體及色彩參考，不嵌入網站。
+
+保留構圖、筆觸、紙張、色盤、街廓與樹木；微調綠瓦三拱門入口、簡單黑色斜屋頂、灰白棚頂、連續紅土內野及成對纖細燈柱。成圖已檢視，仍為藝術詮釋而非精確復原。
+
+## 實際提示詞
+
+Edit the MOST RECENT image, the warm ivory hand-drawn architectural illustration of old Taipei Municipal Baseball Stadium. The preceding TWO images supplied by the user are REAL PHOTOGRAPH reference images only. The user likes the existing illustration and requests SMALL fidelity refinements, NOT a redesign. Preserve the current illustration's exact overall composition, elevated oblique camera, full building silhouette, scale, refined ink-and-watercolor heritage poster style, warm ivory paper, muted palette, urban background, trees and margins. Make only these localized architectural/material corrections using the two photographs: (1) Keep the main entrance with THREE prominent arched portals, cream-white structural columns and gray-brown brick infill panels; give its row of small traditional upturned tile pavilion roofs the recognizable muted jade-green color seen in the photos. The LARGE dark roof immediately behind the gate is a simple plain sloping press-box/grandstand roof, not another ornate Chinese palace roof: simplify its eaves and silhouette to the photograph's plain near-black trapezoid, preserving its position and size. (2) Gently shift the curving foreground grandstand roof toward the pale cool silver-gray / blue-gray sheet-metal tone of the photos. (3) The infield should be a continuous natural terracotta/red-dirt area, including inside the base diamond, NOT a large green grass diamond; keep the green outfield and correct subtle white baselines, do not enlarge or reorient the playing field. (4) Refine the floodlight towers toward the photos' slender paired pale concrete uprights supporting broad rectangular lamp racks; reduce heavy triangular lattice bracing. Keep their current composition rather than adding towers. Preserve every unrelated detail and the existing drawing quality. No text, no lettering, no watermark, no logos from the photo. This remains an interpretive illustration, not an exact historical reconstruction. Output landscape 3:2, same framing as target.

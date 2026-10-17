@@ -1,0 +1,1 @@
+Open this folder in VS Code. Ask your AI coding assistant to read VIBE_CODING_PROMPT.md and implement the website. SPECIFICATION.md contains the agreed project specification. The website has not been implemented yet.
