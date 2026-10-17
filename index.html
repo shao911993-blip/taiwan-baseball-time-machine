@@ -1436,6 +1436,9 @@ html.compact-landscape .pitch-book-art figcaption{padding:2px;font-size:.5rem;li
 .ex-body.mode-game .game-flash,.ex-body.mode-game .game-flash.big{height:64px;min-height:64px;flex:0 0 64px;overflow:hidden}
 @media(max-width:600px){.ex-body.mode-game .game-top{height:58px;min-height:58px;flex-basis:58px}}
 
+.exhibit:has(.mode-game){position:fixed;top:calc(var(--visible-top,0px) + 10px);bottom:auto;margin:0 auto;height:calc(var(--visible-height,100dvh) - 20px);max-height:calc(var(--visible-height,100dvh) - 20px);overflow:hidden;overflow-anchor:none}
+@media(max-width:600px){.exhibit:has(.mode-game){top:var(--visible-top,0px);height:var(--visible-height,100dvh);max-height:var(--visible-height,100dvh)}}
+
 /* Landscape play fills the available viewport. Controls are overlays, so
    opening a selector, showing a result or changing a label cannot resize it. */
 html.compact-landscape .exhibit:has(.mode-game){width:100%;max-width:none;height:var(--visible-height,100dvh);max-height:var(--visible-height,100dvh);top:var(--visible-top,0px);border-radius:0;background:#0b1c17;animation:none}
@@ -1471,6 +1474,22 @@ html.compact-landscape .mode-game .base-phase{position:absolute;top:40px;left:10
 html.compact-landscape .mode-game .line-review{position:absolute;bottom:56px;left:10px;max-width:130px;background:#f7f0df;padding:5px;border-radius:4px}
 html.compact-landscape .mode-game .reading-open>.game-reader{pointer-events:auto;inset:4px;height:calc(100% - 8px);z-index:8}
 html.compact-landscape .mode-game .game-help-close{z-index:9}
+
+/* Direct pitch selection: always present on the left in landscape play. */
+html.compact-landscape .mode-game .game-controls>.pitch-picker{display:block;position:absolute;left:max(8px,env(safe-area-inset-left));right:auto;top:58px;width:176px;max-width:28%;padding:6px;border:1px solid #a99765;border-radius:8px;background:linear-gradient(140deg,#15392ff2,#0d251fec);color:#f5ead0;z-index:4;pointer-events:auto}
+html.compact-landscape .mode-game .pitch-picker .pitch-picker-head{min-height:22px;margin-bottom:4px;gap:4px}
+html.compact-landscape .mode-game .pitch-picker .lab-eyebrow{color:#dcc68d;font-size:.55rem}
+html.compact-landscape .mode-game .pitch-picker .pitch-picker-pages{gap:4px;color:#e4d6ac;font-size:.56rem}
+html.compact-landscape .mode-game .pitch-picker .pitch-picker-pages button{background:#203f33;border-color:#65765a;color:#f6e7c2;width:22px;height:22px}
+html.compact-landscape .mode-game .pitch-picker .pitch-types{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+html.compact-landscape .mode-game .pitch-picker .chip{min-height:clamp(28px,calc((var(--visible-height,100dvh) - 180px)/3),40px);padding:4px 3px;border:1px solid #6d8065;border-radius:5px;background:#29493cd9;color:#f3edda;font-size:.64rem;line-height:1.25;text-align:center}
+html.compact-landscape .mode-game .pitch-picker .chip b{display:none}
+html.compact-landscape .mode-game .pitch-picker .chip[aria-pressed="true"]{background:#ead092;border-color:#fff0c1;color:#16392c;box-shadow:0 0 0 1px #f9e7b933}
+html.compact-landscape .mode-game .game-side-links{display:contents}
+html.compact-landscape .mode-game .pitch-guide{display:block;position:absolute;top:8px;right:150px;width:105px;z-index:4}
+html.compact-landscape .mode-game .pitch-guide-open{min-height:28px;background:#112f26e8;border-color:#b6a779;padding:4px 6px}
+html.compact-landscape .mode-game .pitch-guide-open b{color:#eee3c9;font-size:.58rem;white-space:nowrap}
+html.compact-landscape .mode-game .game-fullscreen:not([hidden]){display:block;position:absolute;bottom:56px;right:10px;min-height:28px;padding:4px 9px;border:1px solid #b6a779;border-radius:5px;background:#112f26e8;color:#eee3c9;font-size:.64rem;z-index:4}
 
 </style>
 </head>
@@ -3746,11 +3765,6 @@ function installGameSidebar(host,learn){
   openHelp.textContent='玩法／說明';closeHelp.textContent='回到遊戲 ✕';openHelp.setAttribute('aria-expanded','false');
   const links=document.createElement('div');links.className='game-side-links';sidebar.append(links);
   const guide=$('.pitch-guide',sidebar);if(guide)links.append(guide);sidebar.append(openHelp);readerRoot.prepend(closeHelp);
-  const settings=document.createElement('button');settings.type='button';settings.className='game-settings-toggle';settings.textContent='球種／握法';settings.setAttribute('aria-expanded','false');if(guide)sidebar.append(settings);
-  const setSettings=value=>{sidebar.classList.toggle('settings-open',value);settings.setAttribute('aria-expanded',String(value));settings.textContent=value?'收起選單 ✕':'球種／握法';};
-  settings.addEventListener('click',()=>setSettings(!sidebar.classList.contains('settings-open')));
-  $('.game',host).addEventListener('click',e=>{if(e.target.closest('[data-pt],[data-bat-type]')&&document.documentElement.classList.contains('compact-landscape'))setSettings(false);});
-  $('.game',host).addEventListener('pointerdown',e=>{if(document.documentElement.classList.contains('compact-landscape')&&sidebar.classList.contains('settings-open')&&e.target.closest('canvas#g-canvas')){setSettings(false);e.preventDefault();e.stopPropagation();}},true);
   const fullscreen=document.createElement('button');fullscreen.type='button';fullscreen.className='game-fullscreen';fullscreen.textContent='全螢幕';links.append(fullscreen);
   fullscreen.hidden=!document.fullscreenEnabled||!document.documentElement.requestFullscreen;
   let gameFullscreen=false;
@@ -5604,16 +5618,26 @@ function openExhibit(id){
   if (sheet.open) sheet.close();
   unmount();
   const dlg = exDialog();
+  const isGame=['bat','pitch','ump','line','base'].includes(id);
   $('#ex-kicker').textContent = def.kicker;
   $('#ex-title').textContent = def.title;
-  if (!dlg.open){ world.paused = true; world.keys = {}; dlg.showModal(); }
+  // Reading exhibits measure their pages while visible; games mount first.
+  if (!isGame&&!dlg.open){ world.paused = true; world.keys = {}; dlg.showModal(); }
   currentEx = id;
   def.open();
+  // Mount before opening: native dialog autofocus must see the final layout.
+  syncVisibleViewport();
+  if (!dlg.open){ world.paused = true; world.keys = {}; dlg.showModal(); }
+  dlg.scrollTop = 0;
   $('#ex-body').scrollTop = 0;
   // 讓玩家站到這個展品旁邊，關掉視窗後就在原地
   const o = objById[id];
   if (o && rectDist(o, world.player.x, world.player.y) > 1.5){ const [x, y] = approachPoint(o); world.player.x = x; world.player.y = y; world.player.dir = 'up'; }
-  if (!$('#ex-body').contains(document.activeElement)) $('#ex-title').focus();
+  if (!$('#ex-body').contains(document.activeElement)) {
+    // The landscape title is hidden; focusing it can pan Safari away from the HUD.
+    (isGame?$('#ex-close'):$('#ex-title')).focus({preventScroll:true});
+  }
+  settleVisibleViewport();
 }
 function closeExhibit(){ if (exDialog().open) exDialog().close(); }
 
@@ -5778,18 +5802,29 @@ function bindMuseum(){
 /* ---------- 啟動 ---------- */
 // Safari's browser bars change the visible height without entering standalone
 // mode. Fit the current visual viewport, including changes after rotation.
-let viewportFitFrame=0;
-function fitVisibleViewport(){
-  cancelAnimationFrame(viewportFitFrame);viewportFitFrame=requestAnimationFrame(()=>{
-    const v=window.visualViewport;if(v&&v.scale!==1)return;
+let viewportFitFrame=0,viewportSettleFrame=0;
+function syncVisibleViewport(){
+    const v=window.visualViewport;if(v&&Math.abs(v.scale-1)>.01)return;
     const height=Math.round(Math.min(window.innerHeight,v?.height??window.innerHeight)),width=v?.width??window.innerWidth;
     document.documentElement.style.setProperty('--visible-height',height+'px');
     document.documentElement.style.setProperty('--visible-top',(v?.offsetTop??0)+'px');
     document.documentElement.classList.toggle('compact-landscape',width>600&&height<=500&&width>height);
     resizeWorld();
-  });
+}
+function fitVisibleViewport(){
+  cancelAnimationFrame(viewportFitFrame);viewportFitFrame=requestAnimationFrame(syncVisibleViewport);
+}
+function settleVisibleViewport(){
+  // Browser chrome and native dialog focus can settle without a resize event.
+  // Re-sample briefly on entry/rotation rather than requiring a pinch gesture.
+  cancelAnimationFrame(viewportSettleFrame);
+  const until=performance.now()+500;
+  const step=()=>{syncVisibleViewport();if(performance.now()<until)viewportSettleFrame=requestAnimationFrame(step);};
+  syncVisibleViewport();viewportSettleFrame=requestAnimationFrame(step);
 }
 window.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('scroll',fitVisibleViewport);fitVisibleViewport();
+window.addEventListener('orientationchange',settleVisibleViewport);
+window.addEventListener('pageshow',settleVisibleViewport);
 const worldSizeObserver=new ResizeObserver(resizeWorld);worldSizeObserver.observe(wc());
 buildPark();
 buildLineage();

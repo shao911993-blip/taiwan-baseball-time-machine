@@ -70,6 +70,9 @@ html.compact-landscape .pitch-book-art figcaption{padding:2px;font-size:.5rem;li
 .ex-body.mode-game .game-flash,.ex-body.mode-game .game-flash.big{height:64px;min-height:64px;flex:0 0 64px;overflow:hidden}
 @media(max-width:600px){.ex-body.mode-game .game-top{height:58px;min-height:58px;flex-basis:58px}}
 
+.exhibit:has(.mode-game){position:fixed;top:calc(var(--visible-top,0px) + 10px);bottom:auto;margin:0 auto;height:calc(var(--visible-height,100dvh) - 20px);max-height:calc(var(--visible-height,100dvh) - 20px);overflow:hidden;overflow-anchor:none}
+@media(max-width:600px){.exhibit:has(.mode-game){top:var(--visible-top,0px);height:var(--visible-height,100dvh);max-height:var(--visible-height,100dvh)}}
+
 /* Landscape play fills the available viewport. Controls are overlays, so
    opening a selector, showing a result or changing a label cannot resize it. */
 html.compact-landscape .exhibit:has(.mode-game){width:100%;max-width:none;height:var(--visible-height,100dvh);max-height:var(--visible-height,100dvh);top:var(--visible-top,0px);border-radius:0;background:#0b1c17;animation:none}
@@ -105,3 +108,19 @@ html.compact-landscape .mode-game .base-phase{position:absolute;top:40px;left:10
 html.compact-landscape .mode-game .line-review{position:absolute;bottom:56px;left:10px;max-width:130px;background:#f7f0df;padding:5px;border-radius:4px}
 html.compact-landscape .mode-game .reading-open>.game-reader{pointer-events:auto;inset:4px;height:calc(100% - 8px);z-index:8}
 html.compact-landscape .mode-game .game-help-close{z-index:9}
+
+/* Direct pitch selection: always present on the left in landscape play. */
+html.compact-landscape .mode-game .game-controls>.pitch-picker{display:block;position:absolute;left:max(8px,env(safe-area-inset-left));right:auto;top:58px;width:176px;max-width:28%;padding:6px;border:1px solid #a99765;border-radius:8px;background:linear-gradient(140deg,#15392ff2,#0d251fec);color:#f5ead0;z-index:4;pointer-events:auto}
+html.compact-landscape .mode-game .pitch-picker .pitch-picker-head{min-height:22px;margin-bottom:4px;gap:4px}
+html.compact-landscape .mode-game .pitch-picker .lab-eyebrow{color:#dcc68d;font-size:.55rem}
+html.compact-landscape .mode-game .pitch-picker .pitch-picker-pages{gap:4px;color:#e4d6ac;font-size:.56rem}
+html.compact-landscape .mode-game .pitch-picker .pitch-picker-pages button{background:#203f33;border-color:#65765a;color:#f6e7c2;width:22px;height:22px}
+html.compact-landscape .mode-game .pitch-picker .pitch-types{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+html.compact-landscape .mode-game .pitch-picker .chip{min-height:clamp(28px,calc((var(--visible-height,100dvh) - 180px)/3),40px);padding:4px 3px;border:1px solid #6d8065;border-radius:5px;background:#29493cd9;color:#f3edda;font-size:.64rem;line-height:1.25;text-align:center}
+html.compact-landscape .mode-game .pitch-picker .chip b{display:none}
+html.compact-landscape .mode-game .pitch-picker .chip[aria-pressed="true"]{background:#ead092;border-color:#fff0c1;color:#16392c;box-shadow:0 0 0 1px #f9e7b933}
+html.compact-landscape .mode-game .game-side-links{display:contents}
+html.compact-landscape .mode-game .pitch-guide{display:block;position:absolute;top:8px;right:150px;width:105px;z-index:4}
+html.compact-landscape .mode-game .pitch-guide-open{min-height:28px;background:#112f26e8;border-color:#b6a779;padding:4px 6px}
+html.compact-landscape .mode-game .pitch-guide-open b{color:#eee3c9;font-size:.58rem;white-space:nowrap}
+html.compact-landscape .mode-game .game-fullscreen:not([hidden]){display:block;position:absolute;bottom:56px;right:10px;min-height:28px;padding:4px 9px;border:1px solid #b6a779;border-radius:5px;background:#112f26e8;color:#eee3c9;font-size:.64rem;z-index:4}

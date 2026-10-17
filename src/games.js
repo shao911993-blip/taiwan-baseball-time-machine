@@ -187,11 +187,6 @@ function installGameSidebar(host,learn){
   openHelp.textContent='玩法／說明';closeHelp.textContent='回到遊戲 ✕';openHelp.setAttribute('aria-expanded','false');
   const links=document.createElement('div');links.className='game-side-links';sidebar.append(links);
   const guide=$('.pitch-guide',sidebar);if(guide)links.append(guide);sidebar.append(openHelp);readerRoot.prepend(closeHelp);
-  const settings=document.createElement('button');settings.type='button';settings.className='game-settings-toggle';settings.textContent='球種／握法';settings.setAttribute('aria-expanded','false');if(guide)sidebar.append(settings);
-  const setSettings=value=>{sidebar.classList.toggle('settings-open',value);settings.setAttribute('aria-expanded',String(value));settings.textContent=value?'收起選單 ✕':'球種／握法';};
-  settings.addEventListener('click',()=>setSettings(!sidebar.classList.contains('settings-open')));
-  $('.game',host).addEventListener('click',e=>{if(e.target.closest('[data-pt],[data-bat-type]')&&document.documentElement.classList.contains('compact-landscape'))setSettings(false);});
-  $('.game',host).addEventListener('pointerdown',e=>{if(document.documentElement.classList.contains('compact-landscape')&&sidebar.classList.contains('settings-open')&&e.target.closest('canvas#g-canvas')){setSettings(false);e.preventDefault();e.stopPropagation();}},true);
   const fullscreen=document.createElement('button');fullscreen.type='button';fullscreen.className='game-fullscreen';fullscreen.textContent='全螢幕';links.append(fullscreen);
   fullscreen.hidden=!document.fullscreenEnabled||!document.documentElement.requestFullscreen;
   let gameFullscreen=false;

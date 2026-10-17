@@ -595,16 +595,26 @@ function openExhibit(id){
   if (sheet.open) sheet.close();
   unmount();
   const dlg = exDialog();
+  const isGame=['bat','pitch','ump','line','base'].includes(id);
   $('#ex-kicker').textContent = def.kicker;
   $('#ex-title').textContent = def.title;
-  if (!dlg.open){ world.paused = true; world.keys = {}; dlg.showModal(); }
+  // Reading exhibits measure their pages while visible; games mount first.
+  if (!isGame&&!dlg.open){ world.paused = true; world.keys = {}; dlg.showModal(); }
   currentEx = id;
   def.open();
+  // Mount before opening: native dialog autofocus must see the final layout.
+  syncVisibleViewport();
+  if (!dlg.open){ world.paused = true; world.keys = {}; dlg.showModal(); }
+  dlg.scrollTop = 0;
   $('#ex-body').scrollTop = 0;
   // 讓玩家站到這個展品旁邊，關掉視窗後就在原地
   const o = objById[id];
   if (o && rectDist(o, world.player.x, world.player.y) > 1.5){ const [x, y] = approachPoint(o); world.player.x = x; world.player.y = y; world.player.dir = 'up'; }
-  if (!$('#ex-body').contains(document.activeElement)) $('#ex-title').focus();
+  if (!$('#ex-body').contains(document.activeElement)) {
+    // The landscape title is hidden; focusing it can pan Safari away from the HUD.
+    (isGame?$('#ex-close'):$('#ex-title')).focus({preventScroll:true});
+  }
+  settleVisibleViewport();
 }
 function closeExhibit(){ if (exDialog().open) exDialog().close(); }
 
@@ -769,18 +779,29 @@ function bindMuseum(){
 /* ---------- 啟動 ---------- */
 // Safari's browser bars change the visible height without entering standalone
 // mode. Fit the current visual viewport, including changes after rotation.
-let viewportFitFrame=0;
-function fitVisibleViewport(){
-  cancelAnimationFrame(viewportFitFrame);viewportFitFrame=requestAnimationFrame(()=>{
-    const v=window.visualViewport;if(v&&v.scale!==1)return;
+let viewportFitFrame=0,viewportSettleFrame=0;
+function syncVisibleViewport(){
+    const v=window.visualViewport;if(v&&Math.abs(v.scale-1)>.01)return;
     const height=Math.round(Math.min(window.innerHeight,v?.height??window.innerHeight)),width=v?.width??window.innerWidth;
     document.documentElement.style.setProperty('--visible-height',height+'px');
     document.documentElement.style.setProperty('--visible-top',(v?.offsetTop??0)+'px');
     document.documentElement.classList.toggle('compact-landscape',width>600&&height<=500&&width>height);
     resizeWorld();
-  });
+}
+function fitVisibleViewport(){
+  cancelAnimationFrame(viewportFitFrame);viewportFitFrame=requestAnimationFrame(syncVisibleViewport);
+}
+function settleVisibleViewport(){
+  // Browser chrome and native dialog focus can settle without a resize event.
+  // Re-sample briefly on entry/rotation rather than requiring a pinch gesture.
+  cancelAnimationFrame(viewportSettleFrame);
+  const until=performance.now()+500;
+  const step=()=>{syncVisibleViewport();if(performance.now()<until)viewportSettleFrame=requestAnimationFrame(step);};
+  syncVisibleViewport();viewportSettleFrame=requestAnimationFrame(step);
 }
 window.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('scroll',fitVisibleViewport);fitVisibleViewport();
+window.addEventListener('orientationchange',settleVisibleViewport);
+window.addEventListener('pageshow',settleVisibleViewport);
 const worldSizeObserver=new ResizeObserver(resizeWorld);worldSizeObserver.observe(wc());
 buildPark();
 buildLineage();
