@@ -93,8 +93,8 @@ html.compact-landscape .mode-game .game-controls>.big-action{position:absolute;r
 html.compact-landscape .mode-game .game-controls>.abs-review-btn{position:absolute;left:max(10px,env(safe-area-inset-left));bottom:max(8px,env(safe-area-inset-bottom));width:155px;min-height:40px;z-index:3}
 html.compact-landscape .mode-game .game-settings-toggle,html.compact-landscape .mode-game .game-help-toggle{display:block;position:absolute;top:8px;right:150px;min-height:28px;padding:4px 8px;border:1px solid #b6a779;border-radius:5px;background:#112f26e8;color:#eee3c9;font-size:.68rem;z-index:4}
 html.compact-landscape .mode-game .game-help-toggle{right:263px;width:85px}
-html.compact-landscape .mode-game .settings-open .pitch-picker{display:block;position:absolute;top:43px;right:8px;width:280px;max-width:45%;padding:8px;border:1px solid #b6a779;border-radius:7px;background:#f7f0df;z-index:4;pointer-events:auto}
-html.compact-landscape .mode-game .settings-open .game-side-links{display:flex;position:absolute;top:150px;right:8px;width:280px;max-width:45%;gap:5px;z-index:4}
+html.compact-landscape .mode-game .settings-open .pitch-picker{display:block;position:absolute;top:43px;left:max(8px,env(safe-area-inset-left));right:auto;width:280px;max-width:45%;padding:8px;border:1px solid #b6a779;border-radius:7px;background:#f7f0df;z-index:4;pointer-events:auto}
+html.compact-landscape .mode-game .settings-open .game-side-links{display:flex;position:absolute;top:150px;left:max(8px,env(safe-area-inset-left));right:auto;width:280px;max-width:45%;gap:5px;z-index:4}
 html.compact-landscape .mode-game .settings-open .pitch-guide{display:block;flex:1;min-width:0}
 html.compact-landscape .mode-game .settings-open .game-fullscreen:not([hidden]){display:block;flex:none;padding:3px 8px;border:1px solid #b6a779;border-radius:4px;background:#f7f0df;color:var(--green);font-size:.62rem}
 html.compact-landscape .mode-game .game-controls>.call-btns{position:absolute;right:10px;bottom:8px;display:grid;grid-template-columns:1fr 1fr;width:230px;gap:7px;z-index:3}

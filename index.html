@@ -570,6 +570,7 @@ body{overflow:hidden}
 @media(max-width:600px){.ex-head-actions{gap:5px}.music-control summary{width:29px;height:34px}.music-panel{right:12px;top:102px}.nav-actions{gap:4px}}
 
 .museum{position:fixed;inset:var(--nav-h) 0 0 0;background:#0c1a15}
+.museum{bottom:auto;height:calc(var(--visible-height,100dvh) - var(--nav-h))}
 #world{display:block;width:100%;height:100%;cursor:pointer;touch-action:none;outline:none}
 #world:focus-visible{box-shadow:inset 0 0 0 3px var(--gold-2)}
 #minimap{position:absolute;top:12px;right:12px;width:168px;height:114px;border:3px solid #3b2b17;border-radius:8px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.5)}
@@ -1458,8 +1459,8 @@ html.compact-landscape .mode-game .game-controls>.big-action{position:absolute;r
 html.compact-landscape .mode-game .game-controls>.abs-review-btn{position:absolute;left:max(10px,env(safe-area-inset-left));bottom:max(8px,env(safe-area-inset-bottom));width:155px;min-height:40px;z-index:3}
 html.compact-landscape .mode-game .game-settings-toggle,html.compact-landscape .mode-game .game-help-toggle{display:block;position:absolute;top:8px;right:150px;min-height:28px;padding:4px 8px;border:1px solid #b6a779;border-radius:5px;background:#112f26e8;color:#eee3c9;font-size:.68rem;z-index:4}
 html.compact-landscape .mode-game .game-help-toggle{right:263px;width:85px}
-html.compact-landscape .mode-game .settings-open .pitch-picker{display:block;position:absolute;top:43px;right:8px;width:280px;max-width:45%;padding:8px;border:1px solid #b6a779;border-radius:7px;background:#f7f0df;z-index:4;pointer-events:auto}
-html.compact-landscape .mode-game .settings-open .game-side-links{display:flex;position:absolute;top:150px;right:8px;width:280px;max-width:45%;gap:5px;z-index:4}
+html.compact-landscape .mode-game .settings-open .pitch-picker{display:block;position:absolute;top:43px;left:max(8px,env(safe-area-inset-left));right:auto;width:280px;max-width:45%;padding:8px;border:1px solid #b6a779;border-radius:7px;background:#f7f0df;z-index:4;pointer-events:auto}
+html.compact-landscape .mode-game .settings-open .game-side-links{display:flex;position:absolute;top:150px;left:max(8px,env(safe-area-inset-left));right:auto;width:280px;max-width:45%;gap:5px;z-index:4}
 html.compact-landscape .mode-game .settings-open .pitch-guide{display:block;flex:1;min-width:0}
 html.compact-landscape .mode-game .settings-open .game-fullscreen:not([hidden]){display:block;flex:none;padding:3px 8px;border:1px solid #b6a779;border-radius:4px;background:#f7f0df;color:var(--green);font-size:.62rem}
 html.compact-landscape .mode-game .game-controls>.call-btns{position:absolute;right:10px;bottom:8px;display:grid;grid-template-columns:1fr 1fr;width:230px;gap:7px;z-index:3}
@@ -3975,6 +3976,30 @@ function groundPath(c,points,fill,stroke,height=0){fieldPath(c,points.map(([x,z]
 function groundCircle(c,x,z,r,fill,height=0){
   groundPath(c,Array.from({length:96},(_,i)=>{const a=i*Math.PI*2/96;return[x+Math.cos(a)*r,z+Math.sin(a)*r];}),fill,null,height);
 }
+const BASEPATH_LENGTH=27.432/Math.sqrt(2);
+function basepathPolygons(homeZ=0,forward=1){
+  const halfWidth=.95,n=halfWidth/Math.sqrt(2);
+  return [-1,1].map(side=>{
+    const end=[side*BASEPATH_LENGTH,homeZ+forward*BASEPATH_LENGTH];
+    const offset=[-forward*n,side*n];
+    return [[offset[0],homeZ+offset[1]],[end[0]+offset[0],end[1]+offset[1]],[end[0]-offset[0],end[1]-offset[1]],[-offset[0],homeZ-offset[1]]];
+  });
+}
+const BASEPATH_GRAIN=(()=>{const random=mulberry32(73);return Array.from({length:100},()=>[random(),random()-.5,random()]);})();
+function drawBasepathLanes(c,project,homeZ=0,forward=1){
+  basepathPolygons(homeZ,forward).forEach((polygon,index)=>{
+    const screen=polygon.map(([x,z])=>project(x,z));
+    const shade=c.createLinearGradient(0,screen[0].y,0,screen[1].y);shade.addColorStop(0,'#ae7750');shade.addColorStop(1,'#a16a43');
+    c.save();fieldPath(c,screen,shade);c.clip();
+    const side=index===0?-1:1;
+    for(const [t,offset,tone] of BASEPATH_GRAIN){
+      const x=side*BASEPATH_LENGTH*t-forward*offset,z=homeZ+forward*BASEPATH_LENGTH*t+side*offset;
+      const p=project(x,z),near=project(x+.025,z),size=Math.max(.5,Math.min(2,Math.abs(near.x-p.x)));
+      c.fillStyle=tone<.5?'rgba(236,199,151,.2)':'rgba(83,47,29,.12)';c.fillRect(p.x,p.y,size*2,size);
+    }
+    c.restore();
+  });
+}
 function drawFieldGround(c){
   const turf=c.createLinearGradient(0,158,0,GH);turf.addColorStop(0,'#496e4c');turf.addColorStop(1,'#294b34');
   c.fillStyle=turf;c.fillRect(0,158,GW,GH-158);
@@ -3986,6 +4011,7 @@ function drawFieldGround(c){
   // 紅土沿一、三壘方向展開，外緣繞過二壘；中央保留草皮。
   groundPath(c,[[0,0],[-21,21],[-26,29],[-24,38],[-16,45],[0,48],[16,45],[24,38],[26,29],[21,21]],'#a9825f');
   groundPath(c,[[0,0],[-17.8,19.4],[0,36.8],[17.8,19.4]],'#426847');
+  drawBasepathLanes(c,fieldPoint);
   // 本壘紅土圓與投手丘各自獨立，兩者之間沒有土路。
   groundCircle(c,0,0,3.96,'#b18a67');
   groundCircle(c,0,18.44,2.7432,'#ba9672',.12);
@@ -4041,7 +4067,16 @@ function pitchingGroundPoint(x,z,height=0){
 // so the foul rays decrease z as they travel away from the plate.
 const PITCHING_FOUL_LINES=[-1,1].map(side=>[1.25,27.432/Math.SQRT2].map(distance=>[side*distance,18.6559-distance]));
 const backZoneLeft=pitchingGroundPoint(-.2159,18.2241,1.02),backZoneRight=pitchingGroundPoint(.2159,18.2241,.45);
-const PITCH_VIEW={zone:{x:backZoneLeft.x,y:backZoneLeft.y,w:backZoneRight.x-backZoneLeft.x,h:backZoneRight.y-backZoneLeft.y},release:{x:361,y:171},aim:{x:640,y:112,w:108,h:142}};
+// Calibrate the near actor and rubber together to the photographed mound's
+// raised platform, rather than its front lip. Release must move with the arm.
+const PITCHER_MOUND_OFFSET={x:-24,y:-34};
+const PITCHER_BACK_BASE={x:270+PITCHER_MOUND_OFFSET.x,y:401+PITCHER_MOUND_OFFSET.y};
+function pitchingRubberPolygon(){
+  return [[-.3048,-.0762],[.3048,-.0762],[.3048,.0762],[-.3048,.0762]].map(([x,z])=>{
+    const p=pitchingGroundPoint(x,z,.254);return {x:p.x+PITCHER_MOUND_OFFSET.x,y:p.y+PITCHER_MOUND_OFFSET.y};
+  });
+}
+const PITCH_VIEW={zone:{x:backZoneLeft.x,y:backZoneLeft.y,w:backZoneRight.x-backZoneLeft.x,h:backZoneRight.y-backZoneLeft.y},release:{x:361+PITCHER_MOUND_OFFSET.x,y:171+PITCHER_MOUND_OFFSET.y},aim:{x:640,y:112,w:108,h:142}};
 function pitchingTarget(pt,zone=PITCH_VIEW.zone){return {x:zone.x+(pt.tx-ZONE.x)/ZONE.w*zone.w,y:zone.y+(pt.ty-ZONE.y)/ZONE.h*zone.h};}
 function pitchingPitchPos(pt,p){
   const t=clamp01(p),f=t+.2*t*(1-t),end=pitchingTarget(pt);
@@ -4101,12 +4136,13 @@ function drawBackActor(c,frame,x,y,scale){
 function drawPitchingScene(c,o={}){
   if(PITCH_BACK_STADIUM.complete&&PITCH_BACK_STADIUM.naturalWidth)c.drawImage(PITCH_BACK_STADIUM,0,0,PITCH_BACK_STADIUM.naturalWidth,PITCH_BACK_STADIUM.naturalHeight,0,0,GW,GH);
   else{c.fillStyle='#2f5140';c.fillRect(0,0,GW,GH);c.fillStyle='#203937';c.fillRect(0,0,GW,180);ell(c,458,226,95,25,'#9d7959');ell(c,270,398,125,27,'#aa8460');}
+  drawBasepathLanes(c,pitchingGroundPoint,18.6559,-1);
   const path=(points,fill,stroke)=>fieldPath(c,points.map(([x,z,h])=>pitchingGroundPoint(x,z,h||0)),fill,stroke);
   // Distant home plate faces the mound; the mound is separated by grass.
   path([[-.2159,18.2241],[.2159,18.2241],[.2159,18.44],[0,18.6559],[-.2159,18.44]],'#f3ead6');
   for(const line of PITCHING_FOUL_LINES)path(line,null,'rgba(243,234,214,.65)');
   for(const side of [-1,1])path([[side*BOX_WORLD.inner,17.5256],[side*BOX_WORLD.outer,17.5256],[side*BOX_WORLD.outer,19.3544],[side*BOX_WORLD.inner,19.3544]],null,'rgba(243,234,214,.6)');
-  path([[-.3048,-.0762,.254],[.3048,-.0762,.254],[.3048,.0762,.254],[-.3048,.0762,.254]],'#e4dcc5');
+  fieldPath(c,pitchingRubberPolygon(),'#e4dcc5');
   drawBackActor(c,15,459,219,.18);
   drawBroadcastBatter(c,o.batterFrame||0);
   drawBackActor(c,14,459,227,.20);
@@ -4115,7 +4151,7 @@ function drawPitchingScene(c,o={}){
   // Source 6 has an extra ball/incorrect glove. The held-ball release pose is
   // the final windup image; flight starts with the empty-hand followthrough.
   const order=[0,1,2,3,4,5,7,8,9,10,11,11];
-  drawBackActor(c,order[o.pitcherFrame||0],270,401,.68);
+  drawBackActor(c,order[o.pitcherFrame||0],PITCHER_BACK_BASE.x,PITCHER_BACK_BASE.y,.68);
   c.textAlign='left';c.font='600 10px sans-serif';c.fillStyle='#eee5cd';
   rrect(c,18,16,263,31,4,'rgba(14,31,32,.82)');c.fillStyle='#eee5cd';c.fillText('PITCHER VIEW / 投手後方 → 本壘',31,36);
   // Enlarged targeting panel maps to the small physical zone at home plate.
@@ -5395,11 +5431,16 @@ function interactWith(id){
 const wc = () => $('#world');
 function resizeWorld(){
   const cv = wc(), dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
+  const width=cv.clientWidth,height=cv.clientHeight;if(!width||!height)return;
+  const pixelWidth=Math.max(1,Math.round(width*dpr)),pixelHeight=Math.max(1,Math.round(height*dpr));
+  // iOS may deliver resize before rotation has finished layout. Keep the
+  // backing bitmap and CSS dimensions in sync, without resetting every frame.
+  if(cv.width!==pixelWidth||cv.height!==pixelHeight){cv.width=pixelWidth;cv.height=pixelHeight;}
   world.dpr = dpr;
-  world.zoom = Math.max(.8, Math.min(2.3, Math.min(cv.clientWidth / (22 * T), cv.clientHeight / (13 * T))));
+  world.zoom = Math.max(.8, Math.min(2.3, Math.min(width / (22 * T), height / (13 * T))));
   const mm = $('#minimap');
-  mm.width = MW * 3 * dpr; mm.height = MH * 3 * dpr;
+  const mw=Math.round(MW*3*dpr),mh=Math.round(MH*3*dpr);
+  if(mm.width!==mw||mm.height!==mh){mm.width=mw;mm.height=mh;}
 }
 
 function wrapText(c, text, maxW){
@@ -5410,11 +5451,15 @@ function wrapText(c, text, maxW){
 }
 
 function render(now){
+  resizeWorld();
   const cv = wc(), c = cv.getContext('2d'), dpr = world.dpr, z = world.zoom;
   const vw = cv.clientWidth, vh = cv.clientHeight, p = world.player;
   const camX = Math.max(0, Math.min(MW * T - vw / z, p.x * T - vw / z / 2));
   const camY = Math.max(0, Math.min(MH * T - vh / z, p.y * T - vh / z / 2));
   world.cam = {x:camX, y:camY};
+  // Clear the entire physical bitmap, not just the latest CSS-sized portion.
+  // Otherwise a late orientation resize can leave an old strip of the map.
+  c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv.width,cv.height);
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   c.fillStyle = '#0c1a15'; c.fillRect(0, 0, vw, vh);
   c.imageSmoothingEnabled = true;
@@ -5741,9 +5786,11 @@ function fitVisibleViewport(){
     document.documentElement.style.setProperty('--visible-height',height+'px');
     document.documentElement.style.setProperty('--visible-top',(v?.offsetTop??0)+'px');
     document.documentElement.classList.toggle('compact-landscape',width>600&&height<=500&&width>height);
+    resizeWorld();
   });
 }
 window.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('scroll',fitVisibleViewport);fitVisibleViewport();
+const worldSizeObserver=new ResizeObserver(resizeWorld);worldSizeObserver.observe(wc());
 buildPark();
 buildLineage();
 renderIndex();

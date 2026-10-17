@@ -422,11 +422,16 @@ function interactWith(id){
 const wc = () => $('#world');
 function resizeWorld(){
   const cv = wc(), dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
+  const width=cv.clientWidth,height=cv.clientHeight;if(!width||!height)return;
+  const pixelWidth=Math.max(1,Math.round(width*dpr)),pixelHeight=Math.max(1,Math.round(height*dpr));
+  // iOS may deliver resize before rotation has finished layout. Keep the
+  // backing bitmap and CSS dimensions in sync, without resetting every frame.
+  if(cv.width!==pixelWidth||cv.height!==pixelHeight){cv.width=pixelWidth;cv.height=pixelHeight;}
   world.dpr = dpr;
-  world.zoom = Math.max(.8, Math.min(2.3, Math.min(cv.clientWidth / (22 * T), cv.clientHeight / (13 * T))));
+  world.zoom = Math.max(.8, Math.min(2.3, Math.min(width / (22 * T), height / (13 * T))));
   const mm = $('#minimap');
-  mm.width = MW * 3 * dpr; mm.height = MH * 3 * dpr;
+  const mw=Math.round(MW*3*dpr),mh=Math.round(MH*3*dpr);
+  if(mm.width!==mw||mm.height!==mh){mm.width=mw;mm.height=mh;}
 }
 
 function wrapText(c, text, maxW){
@@ -437,11 +442,15 @@ function wrapText(c, text, maxW){
 }
 
 function render(now){
+  resizeWorld();
   const cv = wc(), c = cv.getContext('2d'), dpr = world.dpr, z = world.zoom;
   const vw = cv.clientWidth, vh = cv.clientHeight, p = world.player;
   const camX = Math.max(0, Math.min(MW * T - vw / z, p.x * T - vw / z / 2));
   const camY = Math.max(0, Math.min(MH * T - vh / z, p.y * T - vh / z / 2));
   world.cam = {x:camX, y:camY};
+  // Clear the entire physical bitmap, not just the latest CSS-sized portion.
+  // Otherwise a late orientation resize can leave an old strip of the map.
+  c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv.width,cv.height);
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   c.fillStyle = '#0c1a15'; c.fillRect(0, 0, vw, vh);
   c.imageSmoothingEnabled = true;
@@ -768,9 +777,11 @@ function fitVisibleViewport(){
     document.documentElement.style.setProperty('--visible-height',height+'px');
     document.documentElement.style.setProperty('--visible-top',(v?.offsetTop??0)+'px');
     document.documentElement.classList.toggle('compact-landscape',width>600&&height<=500&&width>height);
+    resizeWorld();
   });
 }
 window.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('resize',fitVisibleViewport);window.visualViewport?.addEventListener('scroll',fitVisibleViewport);fitVisibleViewport();
+const worldSizeObserver=new ResizeObserver(resizeWorld);worldSizeObserver.observe(wc());
 buildPark();
 buildLineage();
 renderIndex();

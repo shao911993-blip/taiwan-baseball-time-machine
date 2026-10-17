@@ -417,6 +417,30 @@ function groundPath(c,points,fill,stroke,height=0){fieldPath(c,points.map(([x,z]
 function groundCircle(c,x,z,r,fill,height=0){
   groundPath(c,Array.from({length:96},(_,i)=>{const a=i*Math.PI*2/96;return[x+Math.cos(a)*r,z+Math.sin(a)*r];}),fill,null,height);
 }
+const BASEPATH_LENGTH=27.432/Math.sqrt(2);
+function basepathPolygons(homeZ=0,forward=1){
+  const halfWidth=.95,n=halfWidth/Math.sqrt(2);
+  return [-1,1].map(side=>{
+    const end=[side*BASEPATH_LENGTH,homeZ+forward*BASEPATH_LENGTH];
+    const offset=[-forward*n,side*n];
+    return [[offset[0],homeZ+offset[1]],[end[0]+offset[0],end[1]+offset[1]],[end[0]-offset[0],end[1]-offset[1]],[-offset[0],homeZ-offset[1]]];
+  });
+}
+const BASEPATH_GRAIN=(()=>{const random=mulberry32(73);return Array.from({length:100},()=>[random(),random()-.5,random()]);})();
+function drawBasepathLanes(c,project,homeZ=0,forward=1){
+  basepathPolygons(homeZ,forward).forEach((polygon,index)=>{
+    const screen=polygon.map(([x,z])=>project(x,z));
+    const shade=c.createLinearGradient(0,screen[0].y,0,screen[1].y);shade.addColorStop(0,'#ae7750');shade.addColorStop(1,'#a16a43');
+    c.save();fieldPath(c,screen,shade);c.clip();
+    const side=index===0?-1:1;
+    for(const [t,offset,tone] of BASEPATH_GRAIN){
+      const x=side*BASEPATH_LENGTH*t-forward*offset,z=homeZ+forward*BASEPATH_LENGTH*t+side*offset;
+      const p=project(x,z),near=project(x+.025,z),size=Math.max(.5,Math.min(2,Math.abs(near.x-p.x)));
+      c.fillStyle=tone<.5?'rgba(236,199,151,.2)':'rgba(83,47,29,.12)';c.fillRect(p.x,p.y,size*2,size);
+    }
+    c.restore();
+  });
+}
 function drawFieldGround(c){
   const turf=c.createLinearGradient(0,158,0,GH);turf.addColorStop(0,'#496e4c');turf.addColorStop(1,'#294b34');
   c.fillStyle=turf;c.fillRect(0,158,GW,GH-158);
@@ -428,6 +452,7 @@ function drawFieldGround(c){
   // 紅土沿一、三壘方向展開，外緣繞過二壘；中央保留草皮。
   groundPath(c,[[0,0],[-21,21],[-26,29],[-24,38],[-16,45],[0,48],[16,45],[24,38],[26,29],[21,21]],'#a9825f');
   groundPath(c,[[0,0],[-17.8,19.4],[0,36.8],[17.8,19.4]],'#426847');
+  drawBasepathLanes(c,fieldPoint);
   // 本壘紅土圓與投手丘各自獨立，兩者之間沒有土路。
   groundCircle(c,0,0,3.96,'#b18a67');
   groundCircle(c,0,18.44,2.7432,'#ba9672',.12);
@@ -483,7 +508,16 @@ function pitchingGroundPoint(x,z,height=0){
 // so the foul rays decrease z as they travel away from the plate.
 const PITCHING_FOUL_LINES=[-1,1].map(side=>[1.25,27.432/Math.SQRT2].map(distance=>[side*distance,18.6559-distance]));
 const backZoneLeft=pitchingGroundPoint(-.2159,18.2241,1.02),backZoneRight=pitchingGroundPoint(.2159,18.2241,.45);
-const PITCH_VIEW={zone:{x:backZoneLeft.x,y:backZoneLeft.y,w:backZoneRight.x-backZoneLeft.x,h:backZoneRight.y-backZoneLeft.y},release:{x:361,y:171},aim:{x:640,y:112,w:108,h:142}};
+// Calibrate the near actor and rubber together to the photographed mound's
+// raised platform, rather than its front lip. Release must move with the arm.
+const PITCHER_MOUND_OFFSET={x:-24,y:-34};
+const PITCHER_BACK_BASE={x:270+PITCHER_MOUND_OFFSET.x,y:401+PITCHER_MOUND_OFFSET.y};
+function pitchingRubberPolygon(){
+  return [[-.3048,-.0762],[.3048,-.0762],[.3048,.0762],[-.3048,.0762]].map(([x,z])=>{
+    const p=pitchingGroundPoint(x,z,.254);return {x:p.x+PITCHER_MOUND_OFFSET.x,y:p.y+PITCHER_MOUND_OFFSET.y};
+  });
+}
+const PITCH_VIEW={zone:{x:backZoneLeft.x,y:backZoneLeft.y,w:backZoneRight.x-backZoneLeft.x,h:backZoneRight.y-backZoneLeft.y},release:{x:361+PITCHER_MOUND_OFFSET.x,y:171+PITCHER_MOUND_OFFSET.y},aim:{x:640,y:112,w:108,h:142}};
 function pitchingTarget(pt,zone=PITCH_VIEW.zone){return {x:zone.x+(pt.tx-ZONE.x)/ZONE.w*zone.w,y:zone.y+(pt.ty-ZONE.y)/ZONE.h*zone.h};}
 function pitchingPitchPos(pt,p){
   const t=clamp01(p),f=t+.2*t*(1-t),end=pitchingTarget(pt);
@@ -543,12 +577,13 @@ function drawBackActor(c,frame,x,y,scale){
 function drawPitchingScene(c,o={}){
   if(PITCH_BACK_STADIUM.complete&&PITCH_BACK_STADIUM.naturalWidth)c.drawImage(PITCH_BACK_STADIUM,0,0,PITCH_BACK_STADIUM.naturalWidth,PITCH_BACK_STADIUM.naturalHeight,0,0,GW,GH);
   else{c.fillStyle='#2f5140';c.fillRect(0,0,GW,GH);c.fillStyle='#203937';c.fillRect(0,0,GW,180);ell(c,458,226,95,25,'#9d7959');ell(c,270,398,125,27,'#aa8460');}
+  drawBasepathLanes(c,pitchingGroundPoint,18.6559,-1);
   const path=(points,fill,stroke)=>fieldPath(c,points.map(([x,z,h])=>pitchingGroundPoint(x,z,h||0)),fill,stroke);
   // Distant home plate faces the mound; the mound is separated by grass.
   path([[-.2159,18.2241],[.2159,18.2241],[.2159,18.44],[0,18.6559],[-.2159,18.44]],'#f3ead6');
   for(const line of PITCHING_FOUL_LINES)path(line,null,'rgba(243,234,214,.65)');
   for(const side of [-1,1])path([[side*BOX_WORLD.inner,17.5256],[side*BOX_WORLD.outer,17.5256],[side*BOX_WORLD.outer,19.3544],[side*BOX_WORLD.inner,19.3544]],null,'rgba(243,234,214,.6)');
-  path([[-.3048,-.0762,.254],[.3048,-.0762,.254],[.3048,.0762,.254],[-.3048,.0762,.254]],'#e4dcc5');
+  fieldPath(c,pitchingRubberPolygon(),'#e4dcc5');
   drawBackActor(c,15,459,219,.18);
   drawBroadcastBatter(c,o.batterFrame||0);
   drawBackActor(c,14,459,227,.20);
@@ -557,7 +592,7 @@ function drawPitchingScene(c,o={}){
   // Source 6 has an extra ball/incorrect glove. The held-ball release pose is
   // the final windup image; flight starts with the empty-hand followthrough.
   const order=[0,1,2,3,4,5,7,8,9,10,11,11];
-  drawBackActor(c,order[o.pitcherFrame||0],270,401,.68);
+  drawBackActor(c,order[o.pitcherFrame||0],PITCHER_BACK_BASE.x,PITCHER_BACK_BASE.y,.68);
   c.textAlign='left';c.font='600 10px sans-serif';c.fillStyle='#eee5cd';
   rrect(c,18,16,263,31,4,'rgba(14,31,32,.82)');c.fillStyle='#eee5cd';c.fillText('PITCHER VIEW / 投手後方 → 本壘',31,36);
   // Enlarged targeting panel maps to the small physical zone at home plate.
